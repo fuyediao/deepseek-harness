@@ -1,0 +1,43 @@
+# Isolation overlay for the electron profile loader smoke. Applied above the
+# shipped bundle layers; every path is relative to the smoke's temporary cwd.
+- id: session-persistence-jsonl
+  config:
+    root: './.sessions'
+
+- id: storage-json
+  config:
+    root: './.dsh-storages'
+
+- id: settings
+  config:
+    dshHome: './.dsh-home'
+    watch: false
+
+- id: credentials
+  config:
+    dshHome: './.dsh-home'
+    watch: false
+
+- id: skill-filesystem
+  config:
+    dshHome: './.dsh-home'
+    agentsHome: './.agents-home'
+    bundledSkillDir: './.bundled-skills'
+    watch: false
+
+- id: agent-presets
+  config:
+    default: standard
+    includeUserRoot: false
+
+- id: session-title-llm
+  disabled: true
+
+- id: session-telemetry-otel
+  disabled: true
+
+- id: llm-deepseek
+  disabled: true
+
+- id: agent-instructions
+  disabled: true

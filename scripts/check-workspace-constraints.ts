@@ -54,6 +54,8 @@ const experimentalPackageDirectory = /^packages\/experimental\/[^/]+$/
 const experimentalPackageNamePrefix = '@deepseek-ai/dsh-experimental-'
 /** Directories whose packages this repository publishes: one release member each. */
 const releaseMemberDirectory = /^(?:packages\/(?!experimental\/)[^/]+\/[^/]+|apps\/[^/]+|vendor\/[^/]+)$/
+/** Closed official runtimes that are not release members and must not depend on experimental packages. */
+const officialRuntimeDeployRoots = ['python/sdk-runtime', 'apps/electron/runtime-closure'] as const
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh': ['lib/*.js'],
@@ -61,6 +63,7 @@ const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
   // (dist/preview.html and dist/preview/) backs private experimental
   // packages and is not published.
   '@deepseek-ai/dsh-web-frontend': ['dist', '!dist/**/*.map', '!dist/preview.html', '!dist/preview'],
+  '@deepseek-ai/dsh-electron-shell': ['lib/main.js', 'lib/preload.cjs'],
 }
 
 /** The subset of package.json fields this constraint check cares about. */
@@ -444,7 +447,7 @@ export function checkExperimentalDependencyIsolation(manifests: readonly Workspa
     .filter(name => name !== undefined))
   const errors: string[] = []
   for (const { dir, manifest } of manifests) {
-    if (!releaseMemberDirectory.test(dir) && dir !== 'python/sdk-runtime') continue
+    if (!releaseMemberDirectory.test(dir) && !(officialRuntimeDeployRoots as readonly string[]).includes(dir)) continue
     for (const section of runtimeDependencySections) {
       for (const name of Object.keys(manifest[section] ?? {})) {
         if (!experimentalNames.has(name)) continue
@@ -484,7 +487,7 @@ export function main(): void {
   const manifests = workspaceManifests()
   const dependencyManifests = [
     ...manifests,
-    { dir: 'python/sdk-runtime', manifest: readJson(join(root, 'python/sdk-runtime/package.json')) },
+    ...officialRuntimeDeployRoots.map(dir => ({ dir, manifest: readJson(join(root, dir, 'package.json')) })),
   ]
   const errors = [
     ...checkRepositoryVersion(),

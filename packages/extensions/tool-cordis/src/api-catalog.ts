@@ -566,6 +566,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the path, or undefined for an unknown id.',
       },
       {
+        signature: 'indexInjections(): IndexInjection[]',
+        description: 'The boot protocol rows this registry contributes to an index document, with no `webServer`/`webserver/index-inject` round trip. A webServer-less Host (the Electron IPC shell) calls this directly when composing its own index document, alongside any other renderer\'s `webserver/index-inject` contribution (gathered by emitting that event itself).',
+        parameters: [],
+        returns: 'the same rows {@link bootInjections} derives from the current graph.',
+      },
+      {
+        signature: 'resolveResource(resourceUrl: string): { body: Buffer; contentType: string } | undefined',
+        description: 'Resolve one `/plugins`-relative resource by its exact combo or map URL, with no `webServer`/HTTP round trip. A webServer-less Host (the Electron IPC shell) calls this directly to answer a `/plugins/...` fetch carried over its own transport; serveBundle is the HTTP-route form of the same lookup.',
+        parameters: [{ name: 'resourceUrl', description: 'exact combo or source-map URL, including its query string.' }],
+        returns: 'the immutable bytes and content type, or undefined when unknown.',
+      },
+      {
         signature: 'artifactBaseline(id: string): ClientArtifactBaseline | undefined',
         description: 'Filesystem baseline captured before an entry\'s current bytes were read. HMR compares it with the live files when installing a watch, so a write between startup composition and watch installation cannot disappear into the watcher\'s initial state.',
         parameters: [{ name: 'id', description: 'entry id (package name).' }],

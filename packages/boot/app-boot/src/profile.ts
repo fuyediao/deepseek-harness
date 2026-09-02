@@ -143,6 +143,10 @@ export const PROFILE_TEMPLATES: Record<string, ProfileTemplate> = {
     bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
     patchReload: 'live',
   },
+  electron: {
+    bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-electron-app'],
+    patchReload: 'startup',
+  },
   headless: {
     bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless'],
     patchReload: 'startup',

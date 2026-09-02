@@ -28,6 +28,9 @@ describe('parseDshArgs', () => {
     expect(parse(['web'])).toEqual({ mode: 'profile', profile: 'web', patches: [], args: [] })
     expect(parse(['web', '--patch', 'web.yml']))
       .toEqual({ mode: 'profile', profile: 'web', patches: ['web.yml'], args: [] })
+    expect(parse(['electron'])).toEqual({ mode: 'profile', profile: 'electron', patches: [], args: [] })
+    expect(parse(['electron', '--patch', 'e.yml']))
+      .toEqual({ mode: 'profile', profile: 'electron', patches: ['e.yml'], args: [] })
   })
 
   it('ends the launcher flags at the first token it does not own', () => {
@@ -38,6 +41,8 @@ describe('parseDshArgs', () => {
       .toEqual({ mode: 'profile', profile: 'web', patches: [], args: ['-h'] })
     expect(parse(['web', '--host', '127.0.0.1', '--port', '8080', '--no-open', '--future-web-flag']))
       .toEqual({ mode: 'profile', profile: 'web', patches: [], args: ['--host', '127.0.0.1', '--port', '8080', '--no-open', '--future-web-flag'] })
+    expect(parse(['electron', '--no-window']))
+      .toEqual({ mode: 'profile', profile: 'electron', patches: [], args: ['--no-window'] })
     expect(parse(['--profile', 'headless', 'run', 'the', 'tests']))
       .toEqual({ mode: 'profile', profile: 'headless', patches: [], args: ['run', 'the', 'tests'] })
     // Launcher flags placed after that boundary belong to the app too.
@@ -68,6 +73,8 @@ describe('parseDshArgs', () => {
       .toEqual({ mode: 'dump-config', profile: 'web', defaultOnly: false, patches: [] })
     expect(parse(['web', '--dump-default-config']))
       .toEqual({ mode: 'dump-config', profile: 'web', defaultOnly: true, patches: [] })
+    expect(parse(['electron', '--dump-config']))
+      .toEqual({ mode: 'dump-config', profile: 'electron', defaultOnly: false, patches: [] })
   })
 
   it('rejects missing profile, removed flags, and contradictory inputs', () => {
@@ -84,6 +91,7 @@ describe('parseDshArgs', () => {
     expect(exitCode(['--profile', 'x', '--dump-config', 'task'])).toBe(1)
     expect(exitCode(['--bogus'])).toBe(1)
     expect(exitCode(['--profile', 'x', 'web'])).toBe(1)
+    expect(exitCode(['--profile', 'x', 'electron'])).toBe(1)
     expect(exitCode(['web', '--dump-config', '--dump-default-config'])).toBe(1)
     expect(exitCode(['web', '--dump-default-config', '--patch', 'w.yml'])).toBe(1)
     expect(exitCode(['web', '--patch='])).toBe(1)

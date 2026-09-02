@@ -1,9 +1,16 @@
-/** Host HTTP bridge for browser-client RPC. */
+/**
+ * Host HTTP bridge for browser-client RPC. The RPC service and its shared
+ * fetch handler activate independently of `ctx.webServer`: a Host with no
+ * listening server (the Electron IPC shell) still gets `ctx.connection` and
+ * calls `createSharedFetchHandler` directly over its own transport. The `/api`
+ * HTTP route registers only when a `webServer` is actually present.
+ */
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-credentials'
-// Activates the webServer Context merge used below.
+// Activates the optional webServer Context merge; the route type is used
+// only when a webServer is actually present at runtime.
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { API_PATH } from './api-path.ts'
 import { bridge, DEFAULT_MAX_REQUEST_BODY_BYTES } from './http-bridge.ts'
@@ -63,8 +70,13 @@ function assertImageBodyCapacity(ctx: Context, maxRequestBodyBytes: number): voi
   }
 }
 
-/** Services required before providing Connection. */
-export const inject = ['webServer', 'credentials']
+/**
+ * Services required before providing Connection. `webServer` is deliberately
+ * absent: a Host with no listening server (an IPC-carried shell) still needs
+ * `ctx.connection` and its shared fetch handler; the HTTP route is a
+ * conditional contribution inside {@link apply}, not an activation gate.
+ */
+export const inject = ['credentials']
 
 /** Plugin config: the deployment's non-loopback serving authorities. */
 export interface ConnectionConfig {
@@ -111,20 +123,29 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
     await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays),
   )
   const fetchHandler = connection.createSharedFetchHandler(API_PATH)
-  const route: WebRoute = {
-    kind: 'prefix',
-    path: API_PATH,
-    handler: async (req, res) => {
-      const rejection = connection.requestRejection(req)
-      if (rejection !== undefined) {
-        res.writeHead(rejection)
-        res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
-        return
-      }
-      await bridge(req, res, fetchHandler, maxRequestBodyBytes)
-    },
+  // Optional: a webServer-less Host (the Electron IPC shell) still gets
+  // ctx.connection and calls createSharedFetchHandler directly over its own
+  // transport; there is no HTTP prefix to register in that composition. The
+  // Loader always activates webServer before this plugin when both are
+  // present (the web bundle patch orders the rows), so a synchronous check
+  // is equivalent to gating activation on it and avoids an extra fiber.
+  const webServer = ctx.get('webServer')
+  if (webServer !== undefined) {
+    const route: WebRoute = {
+      kind: 'prefix',
+      path: API_PATH,
+      handler: async (req, res) => {
+        const rejection = connection.requestRejection(req)
+        if (rejection !== undefined) {
+          res.writeHead(rejection)
+          res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
+          return
+        }
+        await bridge(req, res, fetchHandler, maxRequestBodyBytes)
+      },
+    }
+    ctx.effect(() => webServer.register(route), 'client-connection: /api route')
   }
-  ctx.effect(() => ctx.webServer.register(route), 'client-connection: /api route')
   ctx.inject(['attachments'], (attachmentCtx) => {
     assertImageBodyCapacity(attachmentCtx, maxRequestBodyBytes)
   })

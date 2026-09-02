@@ -1,0 +1,66 @@
+- button "New session"
+- button "Collapse sidebar":
+  - img
+- button "New session":
+  - img
+  - text: New Session
+- text: Workspaces
+- button "Search sessions":
+  - img
+- textbox "Search sessions..."
+- button "View options":
+  - img
+- tree "Sessions":
+  - treeitem "Ungrouped" [expanded]:
+    - img
+    - text: Ungrouped
+  - treeitem "Use the read tool twice Session actions for Use the read tool twice" [selected]:
+    - text: Use the read tool twice
+    - button "Session actions for Use the read tool twice":
+      - img
+- button "Settings":
+  - img
+  - text: Settings
+- banner:
+  - navigation "Session hierarchy":
+    - button "Use the read tool twice" [disabled]
+  - button "Session log":
+    - text: Session log
+    - img
+  - tablist:
+    - tab "Chat" [selected]
+    - tab "Trajectory"
+- button "System prompt":
+  - img
+  - img
+  - text: System prompt
+- text: "Use the read tool twice in one assistant message: read a.txt and b.txt. Then reply with the single word DONE and stop. 7/25 {{clock}}"
+- button "Copy":
+  - img
+- button "2 tool calls":
+  - text: 2 tool calls
+  - img
+- paragraph: DONE
+- button "Copy":
+  - img
+- button "Good response":
+  - img
+- button "Bad response":
+  - img
+- button "Branch into a new conversation":
+  - img
+- button "Ran for {{duration}}":
+  - img
+  - text: Ran for {{duration}}
+- text: 7/25 {{clock}}
+- textbox "This model is unavailable — select one to continue" [disabled]
+- button "Commands" [disabled]:
+  - img
+- 'button "Access mode, current: Workspace Write" [disabled]': Workspace Write
+- button "Select model, current deepseek-official/deepseek-v4-flash":
+  - text: deepseek-official/deepseek-v4-flash
+  - img
+- button "Send message" [disabled]
+- text: 1 turns · 2 steps LLM {{duration}} · Tool call {{duration}} TTFT avg {{duration}} · {{throughput}} tok/s Cache hit 98% Input 15.8K tok · Output 135 tok Details
+- button "Close details"
+- text: Click a tool row in the message flow to view its details

@@ -1,0 +1,43 @@
+# Isolation overlay for Electron window and snapshot e2e. Placeholders are
+# rewritten to absolute paths before boot.
+- id: session-persistence-jsonl
+  config:
+    root: '{{persistenceRoot}}'
+
+- id: storage-json
+  config:
+    root: '{{workspaceCwd}}/.dsh-storages'
+
+- id: settings
+  config:
+    dshHome: '{{harnessHome}}'
+    watch: false
+
+- id: credentials
+  config:
+    dshHome: '{{harnessHome}}'
+    watch: false
+
+- id: skill-filesystem
+  config:
+    dshHome: '{{harnessHome}}'
+    agentsHome: '{{workspaceCwd}}/.agents-home'
+    bundledSkillDir: '{{workspaceCwd}}/.bundled-skills'
+    watch: false
+
+- id: agent-presets
+  config:
+    default: standard
+    includeUserRoot: false
+
+- id: session-title-llm
+  disabled: true
+
+- id: session-telemetry-otel
+  disabled: true
+
+- id: llm-deepseek
+  disabled: true
+
+- id: agent-instructions
+  disabled: true

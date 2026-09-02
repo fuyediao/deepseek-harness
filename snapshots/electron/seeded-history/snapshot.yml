@@ -1,0 +1,9 @@
+version: 1
+scenario: seeded-history
+profile: electron
+composition: web-default
+recording: authored
+header:
+  class: web-default
+session:
+  source: ../../web/seeded-history/session.jsonl

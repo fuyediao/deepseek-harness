@@ -95,6 +95,7 @@
     "apps/web/tests/pwsh-terminal.e2e.ts",
     "apps/web/tests/workflow-run.e2e.ts",
     "apps/web/stress-tests/reasoning-chunks.stress.ts",
+    "apps/electron/tests/**/*.ts",
     "apps/cli/tests/**/*.ts",
     "packages/*/*/tests/**/*.ts",
     "scripts/**/*.ts",
@@ -135,6 +136,7 @@
     { "path": "./packages/util/timeout" },
     { "path": "./packages/util/crypto" },
     { "path": "./packages/util/deque" },
+    { "path": "./packages/util/electron-ipc" },
     { "path": "./packages/util/values" },
     { "path": "./packages/util/workspace-path" },
     { "path": "./packages/util/output-retention" },
@@ -267,6 +269,7 @@
     { "path": "./packages/acp/acp" },
     { "path": "./packages/bundle/acp-app" },
     { "path": "./packages/bundle/base" },
+    { "path": "./packages/bundle/electron-app" },
     { "path": "./packages/bundle/headless" },
     { "path": "./packages/bundle/sdk-app" },
     { "path": "./packages/bundle/sdk-minimal" },
@@ -328,6 +331,7 @@
     { "path": "./packages/lsp/lsp" },
     { "path": "./packages/lsp/lsp-stdio" },
     { "path": "./packages/lsp/tool-lsp" },
-    { "path": "./apps/cli" }
+    { "path": "./apps/cli" },
+    { "path": "./apps/electron" }
   ]
 }

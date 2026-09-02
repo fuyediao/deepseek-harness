@@ -2,12 +2,16 @@
  * Node half of the client module system (`dsh.client` dual-face package): scans
  * the host Loader's entries for packages declaring `dsh.client`, composes the
  * `window.__DSH_BOOT__` entry graph (wire single source: {@link WebBootEntry}
- * in `./client/manifest.ts`) in module-graph order, serves one-or-more-plugin
- * combo scripts plus their source maps,
- * contributes the registration facade, application preloads, bootstrap scripts,
- * and graph to the webserver's index injection table, and provides the
+ * in `./client/manifest.ts`) in module-graph order, and provides the
  * `clientModuleHost` service (the HMR node half's registration/notification
- * face).
+ * face). Graph composition and bundle reads (`graph()`, `clientPath()`) work
+ * with no listening server. When a `webServer` is present, it additionally
+ * serves one-or-more-plugin combo scripts plus their source maps over
+ * `/plugins` and contributes the registration facade, application preloads,
+ * bootstrap scripts, and graph to the webserver's index injection table; a
+ * webServer-less Host (the Electron IPC shell) instead reads {@link
+ * ClientModuleRegistry.graph} and bundle bytes directly over its own
+ * transport.
  *
  * Scanning is incremental per package — there is no full-rescan code path.
  * Every cordis `internal/plugin` emission (fiber construction/disposal) marks
@@ -531,7 +535,11 @@ window.__ModuleLoader__={
  * boot activation audit reports it).
  */
 export class ClientModuleRegistry extends Service {
-  static inject = ['webServer', 'loader']
+  // webServer is deliberately absent from the activation gate: a Host with no
+  // listening server (the Electron IPC shell) still composes the graph and
+  // reads bundle bytes through graph()/clientPath(); the /plugins HTTP route
+  // and the webserver/index-inject contribution are conditional below.
+  static inject = ['loader']
 
   private readonly table = new Map<string, WebPluginRecord>()
   private readonly sources = new Map<string, ClientPackageSource>()
@@ -552,7 +560,7 @@ export class ClientModuleRegistry extends Service {
 
   /**
    * Build the service: subscribe, seed, and run the activation flush.
-   * @param ctx - plugin context carrying webServer and loader.
+   * @param ctx - plugin context carrying loader (webServer is optional).
    */
   constructor(ctx: Context) {
     super(ctx, 'clientModules')
@@ -582,10 +590,24 @@ export class ClientModuleRegistry extends Service {
       throw new ClientPackageCompositionError(failures)
     }
 
-    ctx.effect(
-      () => ctx.webServer.register({ kind: 'prefix', path: '/plugins', handler: this.serveBundle }),
-      'client-modules: bundle route',
-    )
+    // Optional: a webServer-less Host (the Electron IPC shell) reads graph()
+    // and bundle bytes directly over its own transport instead. The Loader
+    // always activates webServer before this service when both are present
+    // (the web bundle patch orders the rows), so a synchronous check is
+    // equivalent to gating activation on it.
+    const webServer = ctx.get('webServer')
+    if (webServer !== undefined) {
+      ctx.effect(
+        () => webServer.register({ kind: 'prefix', path: '/plugins', handler: this.serveBundle }),
+        'client-modules: bundle route',
+      )
+    }
+    // The listener itself stays unconditional: `webserver/index-inject` is an
+    // ordinary Context event, not a webServer capability. A webServer-less
+    // Host still needs these rows when it renders its own index document (the
+    // Electron shell emits the event directly and reads bootInjections()
+    // through {@link indexInjections}), and nothing calls emit() unless a
+    // renderer — webServer's or the Host's own — actually asks for the table.
     ctx.on('webserver/index-inject', (table) => {
       table.push(...bootInjections(this.composed))
     })
@@ -606,6 +628,31 @@ export class ClientModuleRegistry extends Service {
    */
   clientPath(id: string): string | undefined {
     return this.table.get(id)?.meta.clientPath
+  }
+
+  /**
+   * The boot protocol rows this registry contributes to an index document,
+   * with no `webServer`/`webserver/index-inject` round trip. A webServer-less
+   * Host (the Electron IPC shell) calls this directly when composing its own
+   * index document, alongside any other renderer's `webserver/index-inject`
+   * contribution (gathered by emitting that event itself).
+   * @returns the same rows {@link bootInjections} derives from the current graph.
+   */
+  indexInjections(): IndexInjection[] {
+    return bootInjections(this.composed)
+  }
+
+  /**
+   * Resolve one `/plugins`-relative resource by its exact combo or map URL,
+   * with no `webServer`/HTTP round trip. A webServer-less Host (the Electron
+   * IPC shell) calls this directly to answer a `/plugins/...` fetch carried
+   * over its own transport; {@link serveBundle} is the HTTP-route form of the
+   * same lookup.
+   * @param resourceUrl - exact combo or source-map URL, including its query string.
+   * @returns the immutable bytes and content type, or undefined when unknown.
+   */
+  resolveResource(resourceUrl: string): { body: Buffer; contentType: string } | undefined {
+    return this.responses.get(resourceUrl) ?? this.previousBatchResponses.get(resourceUrl)
   }
 
   /**
@@ -1008,7 +1055,7 @@ export class ClientModuleRegistry extends Service {
     /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server requests. */
     const requestUrl = new URL(req.url ?? '/', 'http://x')
     const resourceUrl = `${requestUrl.pathname}${requestUrl.search}`
-    const response = this.responses.get(resourceUrl) ?? this.previousBatchResponses.get(resourceUrl)
+    const response = this.resolveResource(resourceUrl)
     if (response !== undefined) {
       res.writeHead(200, {
         'content-type': response.contentType,

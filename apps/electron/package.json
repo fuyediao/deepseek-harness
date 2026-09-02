@@ -1,0 +1,33 @@
+{
+  "name": "@deepseek-ai/dsh-electron-shell",
+  "description": "Electron main/preload shell: loads the built @deepseek-ai/dsh-web-frontend dist over a privileged custom protocol and carries window.__DSH_TRANSPORT__ over an IPC socket to the dsh-electron-app Host process. Spawned by dsh --profile electron; not a standalone launcher.",
+  "version": "0.1.2-alpha.5",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "lib/main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "apps/electron"
+  },
+  "files": [
+    "lib/main.js",
+    "lib/preload.cjs"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/dsh-electron-ipc": "workspace:^",
+    "@deepseek-ai/dsh-host-webserver": "workspace:^"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.12",
+    "playwright": "^1.49.0",
+    "@deepseek-ai/cordis": "workspace:^"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:^"
+  }
+}

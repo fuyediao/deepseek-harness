@@ -1,0 +1,30 @@
+# Unsigned win-x64 NSIS installer. The exe is the Electron shell; extraResources
+# carry a hoisted Node Host (`dsh --profile electron --no-window`) and the
+# built frontend dist. Invoked by scripts/build-electron-installer.ts.
+appId: ai.deepseek.harness
+productName: DeepSeek Harness
+asar: true
+forceCodeSigning: false
+npmRebuild: false
+directories:
+  output: ../../dist-electron
+  buildResources: packaging
+files:
+  - lib/main.js
+  - lib/preload.cjs
+  - package.json
+extraResources:
+  - from: packaging/host
+    to: host
+  - from: packaging/web
+    to: web
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  signAndEditExecutable: false
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: DeepSeek-Harness-Setup-${version}-win-x64.${ext}

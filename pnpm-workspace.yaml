@@ -11,6 +11,8 @@ packages:
   # Deploy root of the single-exe build: a pure dependency manifest whose
   # closure is what the exe bundles and what the Python runtime distributes.
   - python/sdk-runtime
+  # Deploy root of the Windows desktop installer Host tree.
+  - apps/electron/runtime-closure
 
 # Vendored framework packages keep their upstream semver ranges, while local
 # builds must resolve those matching names to this workspace's pinned sources.
@@ -32,6 +34,10 @@ peerDependencyRules:
 allowBuilds:
   esbuild: true
   lefthook: true
+  # Downloads the platform Electron binary the desktop shell and installer spawn.
+  electron: true
+  # electron-builder's Windows NSIS helper; its install script stages vendor bits.
+  electron-winstaller: true
   # Cross-platform boundary for the persistent PTY backend, including ConPTY on Windows.
   node-pty: true
   # Pulled in by @earendil-works/pi-ai (optional LLM API backend). pnpm lists

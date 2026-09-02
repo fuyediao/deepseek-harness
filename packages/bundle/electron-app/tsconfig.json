@@ -1,0 +1,24 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../../vendor/schemastery" },
+    { "path": "../../../vendor/loader" },
+    { "path": "../../boot/app-boot" },
+    { "path": "../../boot/cmdline" },
+    { "path": "../../api/gateway/tsconfig.host.json" },
+    { "path": "../../client/connection/tsconfig.host.json" },
+    { "path": "../../client/modules" },
+    { "path": "../../core/system-prompt" },
+    { "path": "../../host/webserver" },
+    { "path": "../../subprocess/subprocess" },
+    { "path": "../../util/electron-ipc" }
+  ]
+}
