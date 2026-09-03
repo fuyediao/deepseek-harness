@@ -86,6 +86,35 @@ function resolveElectronBinary(): string {
   return electronPath
 }
 
+/** Parent-Electron keys that make a nested `electron.exe` run as Node or attach to the parent's crashpad. */
+const NESTED_ELECTRON_HIJACK_KEYS = [
+  'ELECTRON_RUN_AS_NODE',
+  'ELECTRON_NO_ASAR',
+  'CHROME_CRASHPAD_PIPE_NAME',
+] as const
+
+/**
+ * Environment for the spawned desktop window.
+ * Starts from {@link scrubbedParentEnv}, drops keys that an Electron parent
+ * (VS Code, Cursor) injects into its integrated terminal, then sets the IPC
+ * pipe and frontend dist. Those inherited keys otherwise make `electron.exe`
+ * run as Node or hang on the parent's crashpad pipe, so the Host prints
+ * `ipc ready` and no window appears.
+ * @param pipePath - Host IPC endpoint.
+ * @param distRoot - built `@deepseek-ai/dsh-web-frontend` dist.
+ * @returns spawn `env`.
+ */
+export function electronShellEnv(pipePath: string, distRoot: string): Record<string, string> {
+  const hijack = new Set(NESTED_ELECTRON_HIJACK_KEYS.map(name => name.toLowerCase()))
+  const env: Record<string, string> = {}
+  for (const [key, value] of Object.entries(scrubbedParentEnv())) {
+    if (!hijack.has(key.toLowerCase())) env[key] = value
+  }
+  env.DSH_ELECTRON_IPC_PIPE = pipePath
+  env.DSH_ELECTRON_DIST = distRoot
+  return env
+}
+
 /** Test hooks for dist/shell/binary resolution; production never mutates them. */
 export const internals: {
   resolveDistRoot: () => string
@@ -128,7 +157,7 @@ export function apply(ctx: Context, config: Config): void {
   })
 
   ctx.effect(async () => {
-    const streamGateway = ctx.get('typertGateway') as TypertGateway | undefined
+    const streamGateway: TypertGateway | undefined = ctx.get('typertGateway')
     const host = new ElectronIpcHost({
       fetchHandler: ctx.connection.createSharedFetchHandler(API_PATH),
       clientModules: ctx.clientModules,
@@ -140,17 +169,32 @@ export function apply(ctx: Context, config: Config): void {
 
     let child: ChildProcess | undefined
     if (config.openWindow) {
-      child = spawn(internals.resolveElectronBinary(), [internals.resolveShellMain()], {
-        env: {
-          ...scrubbedParentEnv(),
-          DSH_ELECTRON_IPC_PIPE: host.pipePath,
-          DSH_ELECTRON_DIST: internals.resolveDistRoot(),
-        },
-        stdio: 'inherit',
-      })
-      child.on('exit', (code) => {
-        ctx.get('appExit')?.(code ?? 0)
-      })
+      try {
+        const binary = internals.resolveElectronBinary()
+        const shellMain = internals.resolveShellMain()
+        const distRoot = internals.resolveDistRoot()
+        child = spawn(binary, [shellMain], {
+          env: electronShellEnv(host.pipePath, distRoot),
+          stdio: ['ignore', 'pipe', 'pipe'],
+          windowsHide: false,
+        })
+        child.stdout?.setEncoding('utf8')
+        child.stderr?.setEncoding('utf8')
+        child.stdout?.on('data', (chunk: string) => { process.stdout.write(chunk) })
+        child.stderr?.on('data', (chunk: string) => { process.stderr.write(chunk) })
+        child.on('error', (error) => {
+          console.error('electron-app: failed to spawn the Electron window', error)
+          ctx.get('appExit')?.(1)
+        })
+        child.on('exit', (code) => {
+          ctx.get('appExit')?.(code ?? 0)
+        })
+        console.log(`dsh electron: opening window via ${binary}`)
+      } catch (error) {
+        console.error('electron-app: failed to start the Electron window', error)
+        ctx.get('appExit')?.(1)
+        throw error
+      }
     }
 
     return async () => {

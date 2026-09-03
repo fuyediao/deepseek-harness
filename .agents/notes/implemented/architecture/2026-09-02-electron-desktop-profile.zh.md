@@ -61,3 +61,5 @@ Electron 主进程连接该 socket，注册一个特权 `dsh-app://` 自定义�
 - `@deepseek-ai/dsh-electron-ipc` 是 IPC wire 格式的唯一定义处；帧集合的变更只需更新一个包，而不是让 Host bundle 与 Electron 壳内两份独立漂移的拷贝。
 - 桌面表层不带客户端插件 HMR（`dsh-client-hmr` 仍是仅供 Web 使用的行），也没有 LAN 或远程可达性（该 socket 只接受拉起它的那个进程发出的一个本地连接）；重新构建的客户端 bundle 需要重启 Electron 才能生效。两者都在本次首发中被接受，并记录在该 bundle 的 README 已知限制里，而非被悄然丢弃。
 - Windows 打包（`electron-builder`，一个把 `@deepseek-ai/dsh` 的提升式 Node 配置树与构建好的前端、Electron 壳一并打入的 NSIS 安装程序）在本次首发中未签名且无自动更新；首次运行预期会出现操作系统安全提示，直到后续变更加入代码签名为止。
+- 从 Electron 父进程（Cursor、VS Code）拉起窗口时，必须去掉 `ELECTRON_RUN_AS_NODE`、`ELECTRON_NO_ASAR` 和 `CHROME_CRASHPAD_PIPE_NAME`。否则 `electron.exe` 会按 Node 运行，或卡在父进程的 crashpad 管道上，于是 Host 只打印 `ipc ready` 却不出现窗口。
+- `dsh-electron-app` 必须声明 `@deepseek-ai/dsh-web-frontend`，否则在 pnpm 隔离下 `require.resolve` 看不到构建好的 dist。缺这个依赖时 Host 会打出 `ipc ready`，随后 fiber 静默失败，看起来像卡住。
