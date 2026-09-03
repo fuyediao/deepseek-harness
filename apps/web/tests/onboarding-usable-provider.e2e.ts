@@ -1,9 +1,8 @@
 // Keyless browser e2e: a user who configures some OTHER provider is not asked
-// for the official DeepSeek key again, and the first-run setup card is a card
+// for a first-run credential dialog, and the first-run setup card is a card
 // they can close. The shipped DeepSeek adapter stays mounted without a
-// credential throughout, so the only thing that ends onboarding here is the
-// pi-ai route the user configures through the real wire. Zero model calls:
-// configuration is pure settings/credentials/llm-domain traffic.
+// credential throughout. Zero model calls: configuration is pure
+// settings/credentials/llm-domain traffic.
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
@@ -44,16 +43,11 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
 
   it('closes the setup card without discarding the add card beside it', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-onboarding-setup-card-cancel'))
-    const credentialStep = page.getByRole('dialog', { name: CREDENTIAL_STEP })
-    await credentialStep.waitFor({ timeout: 15_000 })
-    await credentialStep.getByRole('button', { name: '稍后配置' }).click()
-    await credentialStep.waitFor({ state: 'detached', timeout: 15_000 })
+    expect(await page.getByRole('dialog', { name: CREDENTIAL_STEP }).count()).toBe(0)
 
     await page.getByRole('button', { name: '设置', exact: true }).click()
     const settings = page.getByRole('dialog', { name: '设置' })
     await settings.waitFor({ timeout: 10_000 })
-    // Dismissing the onboarding step leaves Settings closed, so enter the
-    // Models section explicitly before exercising its normal cards.
     await settings.getByRole('button', { name: '模型' }).click()
     const setupKey = settings.getByRole('textbox', { name: 'API 密钥', exact: true })
     await setupKey.waitFor({ timeout: 10_000 })
@@ -103,8 +97,9 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
     await page.reload({ waitUntil: 'load' })
     acknowledgeReloadConnectionLoss(tripwire, warningsBefore)
     await page.waitForSelector('[class*="frame"]', { timeout: 15_000 })
-    // The regression: the step read only the official route's credential, so a
-    // fully configured user was taken over on every blank session.
+    // The regression: the setup card used to read only the official route's
+    // credential, so a user with another usable provider still saw DeepSeek
+    // opened over them on every Models visit.
     await expect.poll(
       async () => page.getByRole('dialog', { name: CREDENTIAL_STEP }).count(),
       { timeout: 10_000 },
