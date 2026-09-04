@@ -39,6 +39,7 @@ import {
   resolvePackagedLayout,
   waitForIpcReady,
 } from './packaged-host.ts'
+import { DESKTOP_WINDOW_CHROME, hideDesktopMenuBar } from './window-chrome.ts'
 
 const SCHEME = 'dsh-app'
 const STREAM_FRAME_CHANNEL = 'dsh:stream-frame'
@@ -226,8 +227,7 @@ function installStreamBridge(connection: HostConnection): void {
 async function createWindow(connection: HostConnection): Promise<void> {
   const preloadPath = fileURLToPath(new URL('./preload.cjs', import.meta.url))
   const window = new BrowserWindow({
-    width: 1280,
-    height: 840,
+    ...DESKTOP_WINDOW_CHROME,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -235,6 +235,7 @@ async function createWindow(connection: HostConnection): Promise<void> {
       nodeIntegration: false,
     },
   })
+  hideDesktopMenuBar(window)
   connection.attachWindow(window)
   window.on('closed', () => { app.quit() })
   await window.loadURL(`${SCHEME}://host/`)

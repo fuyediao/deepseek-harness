@@ -24,7 +24,7 @@ Status: implemented
 
 ### `apps/electron`（`@deepseek-ai/dsh-electron-shell`）：窗口
 
-Electron 主进程连接该 socket，注册一个特权 `dsh-app://` 自定义协议（`standard`、`secure`、`supportFetchAPI`、`corsEnabled`），并经它从磁盘服务构建好的 `dsh-web-frontend` dist：`index.html` 会以 Host 当前的 `webserver/index-inject` 行渲染（经 `boot-request`／`boot` 逐请求取一次，使用与已服务 Web 表层相同的 `renderIndexInjections`），其余资源原样读取。窗口（`BrowserWindow`，`contextIsolation`、`sandbox: true`、禁用 `nodeIntegration`）加载该协议。发布的 preload 是 `preload.cjs`，因为沙箱渲染进程不会执行 ESM preload。preload 脚本只安装 `window.__DSH_TRANSPORT__.openStream` 与 `ownsHost: true`；`fetch` 与 `loadBundle` 保持未设置，让页面自身的 `fetch()` 与经典脚本 bundle 加载直接经自定义协议解析，不必再经 IPC 承载的请求/响应编码多绕一圈。`openStream` 不能是 `contextBridge.exposeInMainWorld` 普通函数代理的返回值，因为调用方那个存活的 `AbortSignal` 与返回的异步迭代器都无法带着可用语义穿过该桥的克隆（`AbortSignal` 与异步迭代器都不在 Electron 文档列出的可克隆值清单中，且 `contextBridge` 代理函数的返回值是在跨界时被捕获的快照，而非保持存活的引用）。preload 脚本改为只经 `exposeInMainWorld` 暴露纯 JSON 原语式的桥调用（`streamOpen`／`streamAbort`／`onStreamFrame`），再用 `contextBridge.executeInMainWorld` 把 `openStream` 作为原生主世界代码安装，该代码闭包引用那些已暴露的原语——`AbortSignal` 与返回的 `AsyncIterableIterator` 在整次调用中都停留在同一个 realm。
+Electron 主进程连接该 socket，注册一个特权 `dsh-app://` 自定义协议（`standard`、`secure`、`supportFetchAPI`、`corsEnabled`），并经它从磁盘服务构建好的 `dsh-web-frontend` dist：`index.html` 会以 Host 当前的 `webserver/index-inject` 行渲染（经 `boot-request`／`boot` 逐请求取一次，使用与已服务 Web 表层相同的 `renderIndexInjections`），其余资源原样读取。窗口（`BrowserWindow`，`contextIsolation`、`sandbox: true`、禁用 `nodeIntegration`）隐藏原生 File/Edit/View/Window 菜单栏并加载该协议。发布的 preload 是 `preload.cjs`，因为沙箱渲染进程不会执行 ESM preload。preload 脚本只安装 `window.__DSH_TRANSPORT__.openStream` 与 `ownsHost: true`；`fetch` 与 `loadBundle` 保持未设置，让页面自身的 `fetch()` 与经典脚本 bundle 加载直接经自定义协议解析，不必再经 IPC 承载的请求/响应编码多绕一圈。`openStream` 不能是 `contextBridge.exposeInMainWorld` 普通函数代理的返回值，因为调用方那个存活的 `AbortSignal` 与返回的异步迭代器都无法带着可用语义穿过该桥的克隆（`AbortSignal` 与异步迭代器都不在 Electron 文档列出的可克隆值清单中，且 `contextBridge` 代理函数的返回值是在跨界时被捕获的快照，而非保持存活的引用）。preload 脚本改为只经 `exposeInMainWorld` 暴露纯 JSON 原语式的桥调用（`streamOpen`／`streamAbort`／`onStreamFrame`），再用 `contextBridge.executeInMainWorld` 把 `openStream` 作为原生主世界代码安装，该代码闭包引用那些已暴露的原语——`AbortSignal` 与返回的 `AsyncIterableIterator` 在整次调用中都停留在同一个 realm。
 
 包命名：`apps/electron` 下的 `@deepseek-ai/dsh-electron-shell`，与 `apps/web` 下的 `@deepseek-ai/dsh-web-frontend` 对应——一个不带 `bin` 的已发布应用包，由 Host bundle 经 `require.resolve` 解析，而非被直接启动（`docs/architecture.md#application-launch` 仍称 `dsh` 为唯一受支持的启动器；Electron 进程运行在真正的 `electron` 可执行文件之下，由拉起的 `dsh electron` 进程去拉起它，而不是反过来）。
 
@@ -42,6 +42,7 @@ Electron 主进程连接该 socket，注册一个特权 `dsh-app://` 自定义�
 - `apps/electron/tests/keyless-window.e2e.ts` 通过 Playwright 的 Electron 驱动，针对该 Host 启动已构建的壳，并断言会话界面（工作区选择器）。
 - `snapshots/electron/seeded-history` 借用 Web 的 seeded-history 会话；`apps/electron/tests/seeded-history.e2e.ts` 通过桌面窗口渲染它，并拥有 ARIA golden。
 - `apps/electron/tests/packaged-host.spec.ts` 覆盖 extraResources 路径解析，以及已安装 exe 所使用的 IPC 就绪行等待。
+- `apps/electron/tests/window-chrome.spec.ts` 覆盖被隐藏的原生菜单栏。
 - `scripts/build-electron-installer.spec.ts` 覆盖 win-x64 主机门禁与 dry-run 部署命令。
 - `scripts/electron-runtime-closure.spec.ts` 与 `verify-electron-runtime-closure` 保证 Host 部署根闭合，且不含 Electron asar 包。
 

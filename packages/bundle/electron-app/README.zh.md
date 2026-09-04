@@ -61,7 +61,7 @@ dsh electron --no-window
 
 ### Electron 壳
 
-Electron 主进程（`apps/electron`）连接该 socket，注册一个特权 `dsh-app://` 自定义协议，从磁盘直接服务内置的 `@deepseek-ai/dsh-web-frontend` dist（`index.html` 会以 Host 当前的注入行渲染；其余资源原样读取），并在一个受限的 `BrowserWindow`（`contextIsolation`、`sandbox: true`、禁用 `nodeIntegration`）中加载该协议。Host 在 spawn 之前会去掉 `ELECTRON_RUN_AS_NODE`、`ELECTRON_NO_ASAR` 和 `CHROME_CRASHPAD_PIPE_NAME`，以免 Cursor 或 VS Code 终端让 `electron.exe` 按 Node 运行，或卡在父进程的 crashpad 管道上。preload 脚本（`preload.cjs`，因为沙箱渲染进程不会执行 ESM preload）通过 `contextBridge.executeInMainWorld` 把 `window.__DSH_TRANSPORT__.openStream` 原生安装进主世界，因为 `AbortSignal` 与异步迭代器都无法带着实时语义穿过 `contextBridge` 克隆；`fetch` 与 `loadBundle` 保持未设置，让页面自身的 `fetch()` 与经典脚本 bundle 加载直接经由自定义协议解析。
+Electron 主进程（`apps/electron`）连接该 socket，注册一个特权 `dsh-app://` 自定义协议，从磁盘直接服务内置的 `@deepseek-ai/dsh-web-frontend` dist（`index.html` 会以 Host 当前的注入行渲染；其余资源原样读取），并在一个受限的 `BrowserWindow`（`contextIsolation`、`sandbox: true`、禁用 `nodeIntegration`、无原生菜单栏）中加载该协议。Host 在 spawn 之前会去掉 `ELECTRON_RUN_AS_NODE`、`ELECTRON_NO_ASAR` 和 `CHROME_CRASHPAD_PIPE_NAME`，以免 Cursor 或 VS Code 终端让 `electron.exe` 按 Node 运行，或卡在父进程的 crashpad 管道上。preload 脚本（`preload.cjs`，因为沙箱渲染进程不会执行 ESM preload）通过 `contextBridge.executeInMainWorld` 把 `window.__DSH_TRANSPORT__.openStream` 原生安装进主世界，因为 `AbortSignal` 与异步迭代器都无法带着实时语义穿过 `contextBridge` 克隆；`fetch` 与 `loadBundle` 保持未设置，让页面自身的 `fetch()` 与经典脚本 bundle 加载直接经由自定义协议解析。
 
 ### 源码索引
 
