@@ -1030,6 +1030,54 @@ export interface DeepSeekCatalogModel {
 
 来源：[`packages/llm/llm-deepseek/src/index.ts:125`](../packages/llm/llm-deepseek/src/index.ts)
 
+<a id="deepseek-aidsh-llm-geocrm"></a>
+
+## `@deepseek-ai/dsh-llm-geocrm`
+
+需要：`llm`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema and doubling
+ * as the `llm-geocrm` settings-section shape. Every field is optional in
+ * yml: a missing session token resolves through {@link Config.apiKeyEnv} at
+ * each request (a request without any token fails with `MISSING_CREDENTIAL`,
+ * not at plugin load).
+ */
+export interface Config {
+  /** Credential reference resolved per request; defaults to `GEOCRM_HARNESS_TOKEN`. */
+  apiKeyEnv?: string
+  /** GeoCRM API origin; defaults to `http://127.0.0.1:3001`. */
+  baseURL?: string
+  /** Advisory models shown by discovery consumers; defaults to the static flagships. */
+  models?: GeoCrmCatalogModel[]
+  /** Positive context capacity used when the selected model has no exact value. */
+  defaultContextWindow?: number
+  /** Maximum provider idle time while one stream read is outstanding. */
+  streamIdleTimeoutMs?: number
+  /** Provider-owned model-request retry policy; omission uses normal mode with five retries. */
+  retryPolicy?: RetryPolicyConfig
+}
+
+/** Advisory catalog row stored on the adapter config or settings section. */
+export interface GeoCrmCatalogModel {
+  /** Composite `provider:model` id, or a bare vendor id unique in the catalog. */
+  readonly id: string
+  /** Display name shown by discovery consumers. */
+  readonly name?: string
+  /** Optional distinction from otherwise similar models. */
+  readonly description?: string
+  /** Combined request and response context when known. */
+  readonly contextWindow?: number
+  /** Per-request output cap when known. */
+  readonly maxTokens?: number
+}
+```
+
+依赖：[`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
+
+来源：[`packages/llm/llm-geocrm/src/index.ts:80`](../packages/llm/llm-geocrm/src/index.ts)
+
 <a id="deepseek-aidsh-llm-pi-ai"></a>
 
 ## `@deepseek-ai/dsh-llm-pi-ai`
@@ -2712,6 +2760,27 @@ export interface Config {
 ```
 
 来源：[`packages/fs/tool-fs-search/src/index.ts:73`](../packages/fs/tool-fs-search/src/index.ts)
+
+<a id="deepseek-aidsh-tool-geocrm"></a>
+
+## `@deepseek-ai/dsh-tool-geocrm`
+
+需要：`tools`
+
+```ts config-catalog
+/**
+ * Plugin config. Every field is optional: a missing origin or token reference
+ * falls back to the live `llm-geocrm` settings section, then these defaults.
+ */
+export interface Config {
+  /** Credential reference resolved per call; defaults to `GEOCRM_HARNESS_TOKEN`. */
+  apiKeyEnv?: string
+  /** GeoCRM API origin; defaults to `http://127.0.0.1:3001`. */
+  baseURL?: string
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/index.ts:32`](../packages/llm/tool-geocrm/src/index.ts)
 
 <a id="deepseek-aidsh-tool-goal"></a>
 

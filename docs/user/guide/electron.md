@@ -8,9 +8,9 @@ The desktop app uses the same conversation view, model settings, and session his
 
 ## Configure a model
 
-Open **Settings → Models**, enter a [DeepSeek API key](https://platform.deepseek.com/), and save it. The model route becomes usable immediately without restarting the app.
+Open **Settings → Models**, sign in with your GeoCRM employee ID or email (or paste a session token), keep the origin at your GeoCRM API (`http://127.0.0.1:3001` for a local process), and save. Vendor API keys stay in GeoCRM Settings. The account needs `desktop_agent`. The `geocrm` route and GeoCRM CRM tools become usable immediately without restarting the app.
 
-The [model configuration guide](./providers.md) covers other providers and custom OpenAI-compatible endpoints.
+The [model configuration guide](./providers.md) covers the Web UI DeepSeek card and custom OpenAI-compatible endpoints.
 
 ## Choose a workspace
 

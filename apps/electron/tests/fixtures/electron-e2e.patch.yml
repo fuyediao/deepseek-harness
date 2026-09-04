@@ -39,5 +39,11 @@
 - id: llm-deepseek
   disabled: true
 
+- id: llm-geocrm
+  disabled: true
+
+- id: tool-geocrm
+  disabled: true
+
 - id: agent-instructions
   disabled: true

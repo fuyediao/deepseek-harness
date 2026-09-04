@@ -8,9 +8,9 @@
 
 ## 配置模型
 
-打开**设置 → 模型**，输入 [DeepSeek API 密钥](https://platform.deepseek.com/)并保存。模型路由会立即可用，不需要重启应用。
+打开**设置 → 模型**，用 GeoCRM 工号或邮箱登录（或粘贴会话令牌），把源站保持为你的 GeoCRM API（本地进程为 `http://127.0.0.1:3001`），然后保存。供应商 API 密钥留在 GeoCRM 设置中。账号需要 `desktop_agent`。`geocrm` 路由与 GeoCRM CRM 工具会立即可用，不需要重启应用。
 
-[模型配置指南](./providers.zh.md)介绍其他提供方和自定义 OpenAI 兼容端点。
+[模型配置指南](./providers.zh.md)介绍 Web UI 的 DeepSeek 卡片以及自定义 OpenAI 兼容端点。
 
 ## 选择工作区
 

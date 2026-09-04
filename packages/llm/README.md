@@ -1,5 +1,5 @@
 ---
-description: "The LLM capability group: a provider-neutral model-call service, the DeepSeek and pi-ai provider adapters, request-retry execution, and replay-aware token measurement."
+description: "The LLM capability group: a provider-neutral model-call service, the DeepSeek, GeoCRM, and pi-ai provider adapters, request-retry execution, and replay-aware token measurement."
 kind: "package-group"
 ---
 
@@ -26,6 +26,8 @@ The llm group provides the harness's model-call capability: one provider-neutral
 |---|---|---|
 | [`llm/`](llm/README.md) | Streams one model call through a registered provider adapter and shares the harness message, block, and chunk vocabulary | `ctx.llm` |
 | [`llm-deepseek/`](llm-deepseek/README.md) | Serves the `deepseek-official` route with direct DeepSeek chat-completions, thinking, and image input | registers on `ctx.llm` |
+| [`llm-geocrm/`](llm-geocrm/README.md) | Serves the desktop `geocrm` route through GeoCRM `GET /ai/models` and `POST /ai/harness/responses` | registers on `ctx.llm` |
+| [`tool-geocrm/`](tool-geocrm/README.md) | Proxies GeoCRM Harness CRM tools through `POST /ai/harness/tools/{name}` for the signed-in user | registers on `ctx.tools` |
 | [`llm-pi-ai/`](llm-pi-ai/README.md) | Serves configured provider routes through pi-ai catalogs and wire protocols, including hand-declared gateways | registers on `ctx.llm` |
 | [`deepseek-llm-api-extensions/`](deepseek-llm-api-extensions/README.md) | Registers lifecycle-owned top-level fields on official DeepSeek requests | `ctx.deepseekLlmApiExtensions` |
 | [`plugin-package-inventory-deepseek/`](plugin-package-inventory-deepseek/README.md) | Contributes the active Loader package inventory to official DeepSeek requests | contributes `dsh_plugin_packages` |

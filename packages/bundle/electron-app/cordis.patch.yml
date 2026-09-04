@@ -16,6 +16,34 @@
 
 # ── surface-specific values the base deliberately omits ─────────────────────
 
+# Desktop chat uses the local GeoCRM BYOK gateway. `llm-deepseek` stays in the
+# base layer for `dsh web` / headless; this overlay hides that card and points
+# the default agent model at the `geocrm` route. Web search's DeepSeek route
+# is disabled with it — fetch stays on `http`.
+- id: llm-deepseek
+  disabled: true
+
+- id: web-search-deepseek
+  disabled: true
+
+- id: agent-default-model
+  config:
+    provider: geocrm
+    model: deepseek:deepseek-v4-flash
+
+- id: web
+  config:
+    fetchProvider: http
+
+- insert:
+    - id: llm-geocrm
+      name: '@deepseek-ai/dsh-llm-geocrm'
+
+    # Host-plane CRM tools: every desktop session inherits them. GeoCRM
+    # enforces desktop_agent and write grants on each POST.
+    - id: tool-geocrm
+      name: '@deepseek-ai/dsh-tool-geocrm'
+
 - id: system-prompt
   config:
     persona: >-

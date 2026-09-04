@@ -64,6 +64,7 @@ import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
 import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import { registerListSubagentModels } from '../packages/subagent/tool-subagent/src/list-models.ts'
 import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
+import * as ToolGeocrm from '@deepseek-ai/dsh-tool-geocrm'
 import VmWorkflowEngine from '@deepseek-ai/dsh-workflow-worker-thread'
 import * as ToolRalph from '@deepseek-ai/dsh-tool-ralph'
 import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
@@ -589,6 +590,18 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-geocrm',
+    dir: 'tool-geocrm',
+    source: 'packages/llm/tool-geocrm/src/catalog.ts',
+    requires: ['ctx.tools', 'GEOCRM_HARNESS_TOKEN or the llm-geocrm settings section'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolGeocrm)
+    },
+    note:
+      'Each tool posts to GeoCRM `/ai/harness/tools/{name}` with the signed-in session JWT. Entity enums stay open; GeoCRM ACL refuses unauthorized entities. The shipped electron profile mounts this row on the host plane.',
   },
 ]
 

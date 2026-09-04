@@ -41,6 +41,10 @@ dsh electron --no-window
 
 每个窗口会话都会从已发布的 preset（默认 `standard`）组成自己的 agent，与 `dsh web` 相同。可以更改默认 preset，或在 `$DSH_HOME/.agent-presets` 下添加自定义 preset。
 
+### 模型页
+
+桌面模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。用 GeoCRM 工号或邮箱登录（或粘贴会话令牌），并把 `baseURL` 保持为 GeoCRM API 源站（本地 `geocrm-api` 为 `http://127.0.0.1:3001`）。供应商 API 密钥留在 GeoCRM 设置中。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该用户身份调用 GeoCRM Harness CRM 工具。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -118,6 +122,7 @@ Electron 主进程（`apps/electron`）连接该 socket，注册一个特权 `ds
 - **每进程一个窗口**——关闭最后一个窗口会结束 `dsh` 进程（`ctx.appExit`）；不支持多窗口桌面会话。
 - **首个版本未签名**——`pnpm run dist:electron` 写出的 NSIS 安装程序尚未进行代码签名；首次运行可能出现操作系统安全提示。有效载荷包含 Chromium、一份 Node Host 配置树以及 Harness。
 - **无自动更新**——已安装的 Windows 应用不会检查或应用更新；要用更新的 NSIS 安装包替换它。
+- **桌面聊天使用 GeoCRM，而不是 DeepSeek 官方**——模型页保存 GeoCRM 会话令牌；`dsh web` 与 headless 仍使用 `deepseek-official`。
 
 <a id="dev-note"></a>
 ### 开发备注

@@ -41,6 +41,10 @@ dsh electron --no-window
 
 Each window session composes its own agent from the shipped presets (the `standard` preset by default), the same as `dsh web`. Change the default preset or add your own under `$DSH_HOME/.agent-presets`.
 
+### Models page
+
+The desktop Models page shows the `geocrm` card from [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.md) and does not mount `llm-deepseek`. Sign in with a GeoCRM employee ID or email (or paste a session token) and keep `baseURL` at the GeoCRM API origin (`http://127.0.0.1:3001` for a local `geocrm-api`). Vendor API keys stay in GeoCRM Settings. Every desktop session also receives [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.md) so the agent can call GeoCRM Harness CRM tools as that user. See the [GeoCRM gateway note](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.md).
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -118,6 +122,7 @@ The prompt section sits near the system prompt's head and is stable for the life
 - **One window per process** — closing the last window ends the `dsh` process (`ctx.appExit`); a multi-window desktop session is not supported.
 - **Unsigned first ship** — `pnpm run dist:electron` writes an NSIS installer that is not code-signed; expect an OS security prompt on first run. The payload includes Chromium, a Node Host closure, and the harness.
 - **No auto-update** — the installed Windows app does not check for or apply updates; install a newer NSIS artifact to replace it.
+- **Desktop chat uses GeoCRM, not DeepSeek official** — the Models page stores a GeoCRM session token; `dsh web` and headless still use `deepseek-official`.
 
 <a id="dev-note"></a>
 ### Dev Note

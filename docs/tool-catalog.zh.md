@@ -44,6 +44,7 @@
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
+| `@deepseek-ai/dsh-tool-geocrm` | `count_records`、`create_record`、`delete_record`、`get_record`、`list_entities`、`list_my_access`、`search_records`、`summarize_records`、`update_record` | `ctx.tools`、`GEOCRM_HARNESS_TOKEN or the llm-geocrm settings section` | `tool/call`、`tool/result` | - | 每个工具都用已登录会话 JWT POST 到 GeoCRM `/ai/harness/tools/{name}`。实体枚举保持开放；GeoCRM ACL 会拒绝未授权实体。随产品发布的 electron profile 在宿主平面挂载这一行。 |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2231,3 +2232,311 @@ todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为
 来源：[`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。
+
+<a id="deepseek-aidsh-tool-geocrm"></a>
+
+## `@deepseek-ai/dsh-tool-geocrm`
+
+### `count_records`
+
+统计匹配搜索词与过滤器的 GeoCRM 实体行数，而不传输这些行。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "query": {
+      "type": "string",
+      "description": "Case-insensitive substring across searchable_fields. Omit to list."
+    },
+    "filters": {
+      "type": "object",
+      "description": "Filters keyed by column name. Exact match for filterable_fields. Virtual filters.us_region=east|west matches US sales territories on customers and customer_id entities. Rangeable columns accept column_gte / column_lt.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "entity"
+  ]
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `create_record`
+
+插入新行。除非已登录用户对该实体持有 insert 授权，否则 GeoCRM 拒绝该调用。新行会被强制写入调用者所属的某个组。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "values": {
+      "type": "object",
+      "description": "Column values for the new row.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "entity",
+    "values"
+  ]
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `delete_record`
+
+删除调用者已经可以读取的一行。除非已登录用户对该实体持有 delete 授权，否则 GeoCRM 拒绝该调用。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "id": {
+      "type": "string",
+      "description": "UUID primary key of the row."
+    }
+  },
+  "required": [
+    "entity",
+    "id"
+  ]
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `get_record`
+
+按 UUID 主键（list_entities 中的 id_field）获取单行。单号、客户编码、邮箱和 SKU 都不是 id —— 请使用 search_records。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "id": {
+      "type": "string",
+      "description": "UUID primary key. Not a BillNo or email."
+    }
+  },
+  "required": [
+    "entity",
+    "id"
+  ]
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `list_entities`
+
+列出调用者可以读取的每个 GeoCRM 数据实体，以及可搜索、可过滤、可范围查询的字段和允许的写入操作。在 search_records、summarize_records 或 get_record 之前先调用本工具。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `list_my_access`
+
+返回已登录 GeoCRM 角色、组、已授予的桌面模块以及写入授权。先调用本工具，以了解当前会话可以读写什么。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `search_records`
+
+搜索或列出某个 GeoCRM 实体的行。query 匹配 list_entities 中的 searchable_fields（订单：BillNo/external_id 与 product_name，不是公司名）。优先使用默认 limit 25。结果受调用者所属组限制。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "query": {
+      "type": "string",
+      "description": "Case-insensitive substring across searchable_fields. Omit to list."
+    },
+    "filters": {
+      "type": "object",
+      "description": "Filters keyed by column name. Exact match for filterable_fields. Virtual filters.us_region=east|west matches US sales territories on customers and customer_id entities. Rangeable columns accept column_gte / column_lt.",
+      "additionalProperties": true
+    },
+    "order_by": {
+      "type": "string",
+      "description": "Column to sort by. Defaults to the entity recency column."
+    },
+    "ascending": {
+      "type": "boolean",
+      "description": "Sort ascending instead of descending. Defaults to false."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Rows to return. Keep this small; large pages waste context."
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Rows to skip, for paging."
+    }
+  },
+  "required": [
+    "entity"
+  ]
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `summarize_records`
+
+周期报告（week、month、quarter、half_year、year，或自定义 date_from/date_to），无需传输每一行。做报告时优先使用本工具，而不是分页 search_records。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "period": {
+      "type": "string",
+      "description": "Preset window. Omit when using date_from and date_to.",
+      "enum": [
+        "week",
+        "month",
+        "quarter",
+        "half_year",
+        "year"
+      ]
+    },
+    "year": {
+      "type": "integer",
+      "description": "Calendar year, or ISO week-year when period is week."
+    },
+    "week": {
+      "type": "integer",
+      "description": "ISO week 1–53. Required when period is week."
+    },
+    "month": {
+      "type": "integer",
+      "description": "Month 1–12. Required when period is month."
+    },
+    "quarter": {
+      "type": "integer",
+      "description": "Quarter 1–4. Required when period is quarter."
+    },
+    "half": {
+      "type": "integer",
+      "description": "1 = Jan–Jun, 2 = Jul–Dec. Required when period is half_year."
+    },
+    "date_from": {
+      "type": "string",
+      "description": "Inclusive start date YYYY-MM-DD for a custom range."
+    },
+    "date_to": {
+      "type": "string",
+      "description": "Inclusive end date YYYY-MM-DD for a custom range."
+    },
+    "timezone": {
+      "type": "string",
+      "description": "IANA timezone for calendar bounds. Defaults to Asia/Taipei."
+    },
+    "date_field": {
+      "type": "string",
+      "description": "Rangeable date column. Defaults to report_date_field from list_entities."
+    },
+    "group_by": {
+      "type": "string",
+      "description": "Extra breakdown column from filterable_fields. Do not use id."
+    },
+    "query": {
+      "type": "string",
+      "description": "Case-insensitive substring across searchable_fields. Omit to list."
+    },
+    "filters": {
+      "type": "object",
+      "description": "Filters keyed by column name. Exact match for filterable_fields. Virtual filters.us_region=east|west matches US sales territories on customers and customer_id entities. Rangeable columns accept column_gte / column_lt.",
+      "additionalProperties": true
+    },
+    "include_lines": {
+      "type": "boolean",
+      "description": "On orders, include top SKUs from line items. Defaults to true."
+    },
+    "top": {
+      "type": "integer",
+      "description": "How many customers, SKUs, and large orders to return."
+    }
+  },
+  "required": [
+    "entity"
+  ]
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `update_record`
+
+修补调用者已经可以读取的现有行。除非已登录用户对该实体持有 update 授权，否则 GeoCRM 拒绝该调用。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "id": {
+      "type": "string",
+      "description": "UUID primary key of the row."
+    },
+    "values": {
+      "type": "object",
+      "description": "Columns to change.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "entity",
+    "id",
+    "values"
+  ]
+}
+```
+
+来源：[`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+每个工具都用已登录会话 JWT POST 到 GeoCRM `/ai/harness/tools/{name}`。实体枚举保持开放；GeoCRM ACL 会拒绝未授权实体。随产品发布的 electron profile 在宿主平面挂载这一行。

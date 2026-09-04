@@ -1,0 +1,45 @@
+# Agent Note: Desktop Models page uses GeoCRM as the LLM gateway
+
+Status: implemented
+
+[English](2026-09-05-electron-geocrm-llm-gateway.md) | 中文
+
+## Problem
+
+已交付的 Electron 模型页注册了 `llm-deepseek`（`deepseek-official`）并要求填写 DeepSeek API 密钥。操作者已经运行 GeoCRM BYOK 后端：它保存供应商密钥、签发 Supabase 会话 JWT，并提供 `GET /ai/models?client=electron` 与 `POST /ai/harness/responses`。把 `deepseek-official` 指向该源站会失败：GeoCRM 不是 OpenAI `/v1` API，其 SSE 是不含官方 `event:` 行的 Codex 子集，鉴权是会话令牌加 `x-geocrm-provider`，而不是供应商密钥。
+
+## Decision
+
+`@deepseek-ai/dsh-llm-geocrm` 拥有 `geocrm` 路由。它使用 GeoCRM 已有的 harness 约定，并且不修改 GeoCRM 仓库中的任何文件。
+
+`electron` profile 覆盖层禁用 `llm-deepseek` 与 `web-search-deepseek`，插入 `llm-geocrm`，并把 `agent-default-model` 设为 `provider: geocrm` / `model: deepseek:deepseek-v4-flash`。`dsh web` 与 headless 仍使用 `deepseek-official`。
+
+选择器 id 是复合的 `provider:model` 值，因为 GeoCRM 目录 id 可能在不同 slug 之间碰撞。适配器把 slug 作为 `x-geocrm-provider` 发送，并把供应商 id 作为 `model` 发送。模型卡片（`llm-geocrm`）把会话令牌存在 `GEOCRM_HARNESS_TOKEN` 下，把源站存在 `baseURL` 下（默认 `http://127.0.0.1:3001`）。
+
+`packages/client/ui-settings-models` 把 `llm-geocrm` 映射到策划过的编辑器：GeoCRM 工号或邮箱登录（公开的 `POST /auth/password` 与 `POST /auth/public/resolve-employee-id`）、只写令牌粘贴回退、可自定义源站，以及共享的模型列表编辑器，以便“获取”调用已注册的发现。登录后卡片会探测 `POST /ai/harness/tools/list_my_access`，并显示是否授予 `desktop_agent`。
+
+`@deepseek-ai/dsh-tool-geocrm` 在 electron 宿主平面注册 GeoCRM Harness 的一等工具（`list_my_access`、`list_entities`、检索/计数/汇总、创建/更新/删除）。每次调用都用已存储的 JWT POST 到 `/ai/harness/tools/{name}`。上传工具仍留在 GeoCRM。`dsh web` 与 headless 不挂载这一行。
+
+## Testing
+
+- `packages/llm/llm-geocrm/tests` 覆盖目录 id、HTTP 映射、Responses 翻译、适配器 fetch 以及插件 `apply`。
+- `packages/client/ui-settings-models/tests` 覆盖 GeoCRM 占位符、登录 HTTP 与 `desktop_agent` 探测。
+- `packages/llm/tool-geocrm/tests` 覆盖连接解析、令牌解析与 harness 工具 POST。
+
+## Alternatives considered
+
+**把 `deepseek-official` 指向 GeoCRM 源站。** 否决：官方适配器 POST `/chat/completions` 并解析 OpenAI SSE。GeoCRM 两者都没有。
+
+**复用 `llm-pi-ai`，配置 `openai-responses` 且 `baseURL: …/ai/harness`。** 否决：pi-ai 使用官方 OpenAI Responses SDK，它期望 `event:` 行与 token 增量。GeoCRM 为完整回合写入 `data:` JSON，并且每回合最多一次工具调用。
+
+**在 GeoCRM 上增加 `/v1` 以便现有适配器可用。** 否决：GeoCRM 树不在范围内；已有的 Electron Codex 宿主已经用 `GEOCRM_HARNESS_TOKEN` 与 `x-geocrm-provider` POST `{apiBase}/ai/harness/responses`。
+
+**把适配器放进 `dsh-electron-app`。** 否决：适配器属于 `packages/llm/*`，这样 Host LLM 缝仍是注册点，并且该包保持自己的 100% `src` 覆盖。
+
+## Consequences
+
+- 桌面 设置 → 模型 显示 GeoCRM，而不是 DeepSeek。操作者使用 GeoCRM 工号或邮箱登录（或粘贴会话 JWT）；供应商密钥留在 GeoCRM 设置中；用户需要 `desktop_agent`。
+- 每个 electron 会话都会继承 GeoCRM CRM 工具。GeoCRM ACL 会拒绝已登录用户不能执行的读与写。隔离覆盖层禁用 `tool-geocrm`，使 e2e 目录不依赖该源站。
+- 桌面 profile 上的网页搜索没有 DeepSeek 搜索提供方。`web_fetch` 仍使用 `http`。
+- 复合模型 id（`deepseek:deepseek-v4-flash`）是模型选择器与 `agent-default-model` 存储的值。裸的碰撞 id 会被拒绝。
+- 过期 JWT 会在下一次请求以 `AUTH` 失败。GeoCRM 不会为本 Host 刷新令牌。

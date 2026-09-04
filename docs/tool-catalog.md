@@ -40,6 +40,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
+| `@deepseek-ai/dsh-tool-geocrm` | `count_records`, `create_record`, `delete_record`, `get_record`, `list_entities`, `list_my_access`, `search_records`, `summarize_records`, `update_record` | `ctx.tools`, `GEOCRM_HARNESS_TOKEN or the llm-geocrm settings section` | `tool/call`, `tool/result` | - | Each tool posts to GeoCRM `/ai/harness/tools/{name}` with the signed-in session JWT. Entity enums stay open; GeoCRM ACL refuses unauthorized entities. The shipped electron profile mounts this row on the host plane. |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2223,3 +2224,311 @@ Search the web for current information. Provide 1–4 queries in the required qu
 Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.
+
+<a id="deepseek-aidsh-tool-geocrm"></a>
+
+## `@deepseek-ai/dsh-tool-geocrm`
+
+### `count_records`
+
+Count rows of a GeoCRM entity matching a search term and filters, without transferring the rows.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "query": {
+      "type": "string",
+      "description": "Case-insensitive substring across searchable_fields. Omit to list."
+    },
+    "filters": {
+      "type": "object",
+      "description": "Filters keyed by column name. Exact match for filterable_fields. Virtual filters.us_region=east|west matches US sales territories on customers and customer_id entities. Rangeable columns accept column_gte / column_lt.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "entity"
+  ]
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `create_record`
+
+Insert a new row. GeoCRM refuses the call unless the signed-in user holds an insert grant for that entity. New rows are forced into one of the caller's groups.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "values": {
+      "type": "object",
+      "description": "Column values for the new row.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "entity",
+    "values"
+  ]
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `delete_record`
+
+Delete a row the caller can already read. GeoCRM refuses the call unless the signed-in user holds a delete grant for that entity.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "id": {
+      "type": "string",
+      "description": "UUID primary key of the row."
+    }
+  },
+  "required": [
+    "entity",
+    "id"
+  ]
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `get_record`
+
+Fetch a single row by its UUID primary key (id_field from list_entities). Bill numbers, customer codes, emails, and SKUs are not ids — use search_records.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "id": {
+      "type": "string",
+      "description": "UUID primary key. Not a BillNo or email."
+    }
+  },
+  "required": [
+    "entity",
+    "id"
+  ]
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `list_entities`
+
+List every GeoCRM data entity the caller may read, with searchable, filterable, and rangeable fields plus allowed write actions. Call this before search_records, summarize_records, or get_record.
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `list_my_access`
+
+Return the signed-in GeoCRM role, groups, granted desktop modules, and write grants. Call this first to learn what the current session may read and write.
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `search_records`
+
+Search or list rows of a GeoCRM entity. query matches searchable_fields from list_entities (for orders: BillNo/external_id and product_name, not company names). Prefer the default limit of 25. Results are restricted to the caller's groups.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "query": {
+      "type": "string",
+      "description": "Case-insensitive substring across searchable_fields. Omit to list."
+    },
+    "filters": {
+      "type": "object",
+      "description": "Filters keyed by column name. Exact match for filterable_fields. Virtual filters.us_region=east|west matches US sales territories on customers and customer_id entities. Rangeable columns accept column_gte / column_lt.",
+      "additionalProperties": true
+    },
+    "order_by": {
+      "type": "string",
+      "description": "Column to sort by. Defaults to the entity recency column."
+    },
+    "ascending": {
+      "type": "boolean",
+      "description": "Sort ascending instead of descending. Defaults to false."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Rows to return. Keep this small; large pages waste context."
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Rows to skip, for paging."
+    }
+  },
+  "required": [
+    "entity"
+  ]
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `summarize_records`
+
+Period report (week, month, quarter, half_year, year, or custom date_from/date_to) without transferring every row. Prefer this over paging search_records for reports.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "period": {
+      "type": "string",
+      "description": "Preset window. Omit when using date_from and date_to.",
+      "enum": [
+        "week",
+        "month",
+        "quarter",
+        "half_year",
+        "year"
+      ]
+    },
+    "year": {
+      "type": "integer",
+      "description": "Calendar year, or ISO week-year when period is week."
+    },
+    "week": {
+      "type": "integer",
+      "description": "ISO week 1–53. Required when period is week."
+    },
+    "month": {
+      "type": "integer",
+      "description": "Month 1–12. Required when period is month."
+    },
+    "quarter": {
+      "type": "integer",
+      "description": "Quarter 1–4. Required when period is quarter."
+    },
+    "half": {
+      "type": "integer",
+      "description": "1 = Jan–Jun, 2 = Jul–Dec. Required when period is half_year."
+    },
+    "date_from": {
+      "type": "string",
+      "description": "Inclusive start date YYYY-MM-DD for a custom range."
+    },
+    "date_to": {
+      "type": "string",
+      "description": "Inclusive end date YYYY-MM-DD for a custom range."
+    },
+    "timezone": {
+      "type": "string",
+      "description": "IANA timezone for calendar bounds. Defaults to Asia/Taipei."
+    },
+    "date_field": {
+      "type": "string",
+      "description": "Rangeable date column. Defaults to report_date_field from list_entities."
+    },
+    "group_by": {
+      "type": "string",
+      "description": "Extra breakdown column from filterable_fields. Do not use id."
+    },
+    "query": {
+      "type": "string",
+      "description": "Case-insensitive substring across searchable_fields. Omit to list."
+    },
+    "filters": {
+      "type": "object",
+      "description": "Filters keyed by column name. Exact match for filterable_fields. Virtual filters.us_region=east|west matches US sales territories on customers and customer_id entities. Rangeable columns accept column_gte / column_lt.",
+      "additionalProperties": true
+    },
+    "include_lines": {
+      "type": "boolean",
+      "description": "On orders, include top SKUs from line items. Defaults to true."
+    },
+    "top": {
+      "type": "integer",
+      "description": "How many customers, SKUs, and large orders to return."
+    }
+  },
+  "required": [
+    "entity"
+  ]
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+### `update_record`
+
+Patch an existing row the caller can already read. GeoCRM refuses the call unless the signed-in user holds an update grant for that entity.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "entity": {
+      "type": "string",
+      "description": "Entity key from list_entities. Do not invent names."
+    },
+    "id": {
+      "type": "string",
+      "description": "UUID primary key of the row."
+    },
+    "values": {
+      "type": "object",
+      "description": "Columns to change.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "entity",
+    "id",
+    "values"
+  ]
+}
+```
+
+Source: [`packages/llm/tool-geocrm/src/catalog.ts`](../packages/llm/tool-geocrm/src/catalog.ts)
+
+Each tool posts to GeoCRM `/ai/harness/tools/{name}` with the signed-in session JWT. Entity enums stay open; GeoCRM ACL refuses unauthorized entities. The shipped electron profile mounts this row on the host plane.
