@@ -16,7 +16,7 @@ Status: implemented
 
 选择器 id 是复合的 `provider:model` 值，因为 GeoCRM 目录 id 可能在不同 slug 之间碰撞。适配器把 slug 作为 `x-geocrm-provider` 发送，并把供应商 id 作为 `model` 发送。模型卡片（`llm-geocrm`）把会话令牌存在 `GEOCRM_HARNESS_TOKEN` 下。API 源站来自启动环境（`GEOCRM_BASE_URL`，或把 `GEOCRM_DEPLOYMENT_DOMAIN` 写成 `https://api.{domain}`），然后是显式的设置 `baseURL`，最后是 `http://127.0.0.1:3001`。
 
-`packages/client/ui-settings-models` 把 `llm-geocrm` 映射到策划过的编辑器：会话条（退出登录回到窗口登录页）、共享的模型列表编辑器以便“获取”调用已注册的发现，以及自定义设置里的源站和只写令牌粘贴回退。在桌面渲染进程中，模型页使用目录说明、隐藏「添加提供方 / 添加自定义提供方」，并打开 GeoCRM 卡片以便看到允许名单。composer 与 `/model` 弹窗把 `geocrm` 复合 id 按 GeoCRM Electron 的顺序拆成供应商分组（ChatGPT、Gemini、Claude、Grok，然后是其余），触发器显示 `供应商 · 模型`；选中后仍存储 `provider: geocrm`。工号或邮箱登录（公开的 `POST /auth/password` 与 `POST /auth/public/resolve-employee-id`）和桌面 Google 登录（系统浏览器打开 `GET /auth/google`，令牌经短时 `127.0.0.1` 回环返回）留在窗口登录页。登录页在登录后探测 `POST /ai/harness/tools/list_my_access`，没有 `desktop_agent` 则窗口保持锁定。`dsh web` 不挂载这张卡片。
+`packages/client/ui-settings-models` 把 `llm-geocrm` 映射到策划过的编辑器：会话条（退出登录回到窗口登录页）、共享的模型列表编辑器以便“获取”调用已注册的发现，以及自定义设置里的源站和只写令牌粘贴回退。在桌面渲染进程中，模型页使用目录说明、隐藏「添加提供方 / 添加自定义提供方」，并打开 GeoCRM 卡片以便看到允许名单。composer 与 `/model` 弹窗把 `geocrm` 复合 id 按 GeoCRM Electron 的顺序拆成供应商分组（ChatGPT、Gemini、Claude、Grok，然后是其余），触发器显示 `供应商 · 模型`；选中后仍存储 `provider: geocrm`。`listModels` 会把 `GET /ai/models` 与 `POST /ai/settings/connectivity` 合并：出现在连通性结果里的供应商表示已有 BYOK 密钥（探测成败会被忽略）；未出现的供应商带 `geocrm:not-configured`。composer 显示「未设定」并拒绝新的选择。连通性失败或无法识别的响应不打标。目录里的 `configured: false` 也会被采用。工号或邮箱登录（公开的 `POST /auth/password` 与 `POST /auth/public/resolve-employee-id`）和桌面 Google 登录（系统浏览器打开 `GET /auth/google`，令牌经短时 `127.0.0.1` 回环返回）留在窗口登录页。登录页在登录后探测 `POST /ai/harness/tools/list_my_access`，没有 `desktop_agent` 则窗口保持锁定。`dsh web` 不挂载这张卡片。
 
 Electron 窗口在会话界面可用之前占据 `shell.gate`。浏览器 Loader 创建 client 条目时不转发 yml 配置，因此该覆盖层依据 `dsh-app:` 渲染协议判断（测试传入 `requireSignIn`）。已存储的 `GEOCRM_HARNESS_TOKEN` 会跳过该页。新登录若没有 `desktop_agent` 会清除令牌并留在该页。从模型卡片退出登录会回到该页。`dsh web` 让 `shell.gate` 保持空。`shell.gate` 与 `shell.overlay` 横跨整个 AppFrame 网格，因此登录卡片可以在窗口正中铺开；若不横跨，绝对定位的占位只会填满侧栏那一列。
 
@@ -26,7 +26,7 @@ Electron 窗口在会话界面可用之前占据 `shell.gate`。浏览器 Loader
 
 ## Testing
 
-- `packages/llm/llm-geocrm/tests` 覆盖目录 id、HTTP 映射、Responses 翻译、适配器 fetch、插件 `apply` 以及会话刷新。
+- `packages/llm/llm-geocrm/tests` 覆盖目录 id、HTTP 映射、Responses 翻译、适配器 fetch、插件 `apply`、会话刷新，以及由连通性得出的 BYOK 有无。
 - `packages/client/ui-settings-models/tests` 覆盖 GeoCRM 会话条与模型列表、登录页 HTTP、Google 桌面调用、refresh 令牌持久化、`desktop_agent` 探测、`shell.gate` 覆盖层以及桌面品牌占位（含空白会话首屏）。
 - `apps/electron/tests/window-chrome.spec.ts` 会把官方前端标题后缀以及本地构建回退（`DSH Local Build`、`DSH 本地构建`）改写为 GeoCRM Harness。`apps/electron/tests/google-sign-in.spec.ts` 覆盖回环授权 URL、CSRF state、令牌 POST，以及监听关闭后的迟到请求。
 - `packages/llm/tool-geocrm/tests` 覆盖连接解析、令牌解析、harness 工具 POST 以及 `tool:geocrm` 提示词段。
@@ -57,9 +57,13 @@ Electron 窗口在会话界面可用之前占据 `shell.gate`。浏览器 Loader
 
 **再发一份仅 electron 使用的 `geocrm` preset 并设为默认。** 否决：那会整份复制 `standard` 组合。默认桌面会话保留的工作智能体说明是宿主平面上的 `tool:geocrm` 段。
 
+**把供应商密钥字段放到桌面模型卡片上。** 否决：BYOK 袋仍在 GeoCRM 设置。Harness 只显示是否已有密钥。
+
+**在 GeoCRM 增加 `GET /ai/keys` 返回布尔映射。** 延后：`POST /ai/settings/connectivity` 已经会省略没有密钥的供应商。专用端点可以避免打开选择器时探测各供应商。
+
 ## Consequences
 
-- 桌面窗口在会话界面之前显示 GeoCRM Harness 登录页。使用 Google 登录会打开系统浏览器；工号 / 邮箱仍留在该页。任务栏、标题栏、侧栏和空白会话首屏显示 GeoCRM Harness。设置 → 模型 仍显示 GeoCRM（而非 DeepSeek）：目录说明、已打开的 GeoCRM 卡片、退出登录，以及自定义设置里的令牌粘贴回退。它不提供「添加提供方」。composer 按 GeoCRM 允许名单列出供应商分组。供应商密钥留在 GeoCRM 设置中；用户需要 `desktop_agent`。
+- 桌面窗口在会话界面之前显示 GeoCRM Harness 登录页。使用 Google 登录会打开系统浏览器；工号 / 邮箱仍留在该页。任务栏、标题栏、侧栏和空白会话首屏显示 GeoCRM Harness。设置 → 模型 仍显示 GeoCRM（而非 DeepSeek）：目录说明、已打开的 GeoCRM 卡片、退出登录，以及自定义设置里的令牌粘贴回退。它不提供「添加提供方」。composer 按 GeoCRM 允许名单列出供应商分组，并把没有 GeoCRM 密钥的供应商标为「未设定」。供应商密钥留在 GeoCRM 设置中；用户需要 `desktop_agent`。
 - 每个 electron 会话都会继承 GeoCRM CRM 工具和 `tool:geocrm` 段。GeoCRM ACL 会拒绝已登录用户不能执行的读与写。隔离覆盖层禁用 `tool-geocrm`，使 e2e 目录不依赖该源站。
 - 桌面 profile 上的网页搜索没有 DeepSeek 搜索提供方。`web_fetch` 仍使用 `http`。
 - 复合模型 id（`deepseek:deepseek-v4-flash`）是模型选择器与 `agent-default-model` 存储的值。裸的碰撞 id 会被拒绝。

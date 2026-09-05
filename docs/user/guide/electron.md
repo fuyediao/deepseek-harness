@@ -10,7 +10,7 @@ The desktop app uses the same conversation view, model settings, and session his
 
 The window opens on a GeoCRM Harness sign-in panel. The title bar, sidebar, and a new session show GeoCRM Harness. Sign in with Google, or with your employee ID or email, before the conversation shell is usable. Put the GeoCRM API origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (the same host GeoCRM Electron uses as `VITE_DEPLOYMENT_DOMAIN`). A missing file keeps `http://127.0.0.1:3001`. A stored `GEOCRM_HARNESS_TOKEN` skips the panel. The account needs `desktop_agent`. Sign out from **Settings → Models** returns you to the panel. Vendor API keys stay in GeoCRM Settings. A password or Google sign-in stays signed in; the Host refreshes the session before the access JWT expires. The `geocrm` route and GeoCRM CRM tools become usable immediately without restarting the app. With no saved workspace, **Choose workspace** opens the OS folder dialog.
 
-The composer model menu lists ChatGPT, Gemini, Claude, Grok, and the rest of the GeoCRM allowlist in that vendor order. Settings → Models does not add a second LLM provider. The [model configuration guide](./providers.md) covers the Web UI DeepSeek card and custom OpenAI-compatible endpoints.
+The composer model menu lists ChatGPT, Gemini, Claude, Grok, and the rest of the GeoCRM allowlist in that vendor order. A vendor with no key in GeoCRM Settings is marked Not Configured and cannot be selected until you add the key there. Settings → Models does not add a second LLM provider. The [model configuration guide](./providers.md) covers the Web UI DeepSeek card and custom OpenAI-compatible endpoints.
 
 ## Choose a workspace
 

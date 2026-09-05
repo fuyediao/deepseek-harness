@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_MODELS,
+  GEOCRM_NOT_CONFIGURED_DESCRIPTION,
   STATIC_FLAGSHIP_MODELS,
   catalogEntriesToDiscovered,
   catalogEntriesToModels,
@@ -62,11 +63,13 @@ describe('catalog JSON', () => {
         { id: '', provider: 'deepseek' },
         { id: 'b', provider: '' },
         'skip',
-        { id: 'c', provider: 'claude' },
+        { id: 'c', provider: 'claude', configured: false },
+        { id: 'd', provider: 'gemini', configured: true },
       ],
     })).toEqual([
       { id: 'a', provider: 'deepseek', labelEn: 'A', default: true, vision: true },
-      { id: 'c', provider: 'claude' },
+      { id: 'c', provider: 'claude', configured: false },
+      { id: 'd', provider: 'gemini', configured: true },
     ])
   })
 
@@ -89,6 +92,16 @@ describe('catalog JSON', () => {
     expect(catalogEntriesToModels('geocrm', [{ id: 'y', provider: 'deepseek' }])).toEqual([
       { provider: 'geocrm', id: 'deepseek:y', name: 'y' },
     ])
+    expect(catalogEntriesToModels('geocrm', [{
+      id: 'opus',
+      provider: 'claude',
+      configured: false,
+    }])).toEqual([{
+      provider: 'geocrm',
+      id: 'claude:opus',
+      name: 'opus',
+      description: GEOCRM_NOT_CONFIGURED_DESCRIPTION,
+    }])
     expect(catalogEntryName({ id: 'y', provider: 'deepseek' })).toBe('y')
     expect(catalogEntryName({ id: 'y', provider: 'deepseek', labelEn: 'Why' })).toBe('Why')
   })

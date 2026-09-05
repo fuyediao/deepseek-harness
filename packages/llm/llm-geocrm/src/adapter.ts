@@ -34,6 +34,7 @@ import {
   type GeoCrmCatalogEntry,
   type GeoCrmCatalogModel,
 } from './catalog.ts'
+import { applyKeyPresence, parseConfiguredProviders } from './keys.ts'
 import { geocrmHttpErrorCode, normalizeGeoCrmOrigin, parseGeoCrmErrorBody } from './http.ts'
 import { chunksFromGeoCrmEvents, parseGeoCrmSseEvent, readSseData, toGeoCrmRequest } from './translate.ts'
 
@@ -97,14 +98,24 @@ export class GeoCrmAdapter extends LlmAdapter {
 
   override async listModels(provider: string): Promise<readonly LlmModelInfo[]> {
     const connection = this.config.options()
-    const live = await this.tryLiveCatalog(connection)
-    if (live !== undefined) return catalogEntriesToModels(provider, live)
-    return connection.models.map(model => ({
-      provider,
-      id: model.id,
-      name: model.name ?? model.id,
-      ...model.description === undefined ? {} : { description: model.description },
-    }))
+    try {
+      const token = await this.config.resolveApiKey(connection)
+      const origin = normalizeGeoCrmOrigin(connection.baseURL)
+      const [live, configured] = await Promise.all([
+        this.fetchCatalog(origin, token),
+        this.fetchConfiguredProviders(origin, token),
+      ])
+      return catalogEntriesToModels(provider, applyKeyPresence(live, configured))
+    } catch {
+      // Advisory catalog remains the answer when the token is missing or the
+      // origin is unreachable; stream still fails at the Responses POST.
+      return connection.models.map(model => ({
+        provider,
+        id: model.id,
+        name: model.name ?? model.id,
+        ...model.description === undefined ? {} : { description: model.description },
+      }))
+    }
   }
 
   override async resolveModel(
@@ -298,6 +309,35 @@ export class GeoCrmAdapter extends LlmAdapter {
       throw await this.refuse(response, origin)
     }
     return parseCatalogResponse(await response.json() as unknown)
+  }
+
+  /**
+   * POST `/ai/settings/connectivity` for BYOK key presence only.
+   * Providers that appear have a key; omitted vendors are Not Configured.
+   * A failed or unrecognized body leaves presence unknown.
+   * @param origin - GeoCRM API origin.
+   * @param apiKey - Supabase session JWT.
+   * @returns lowercase provider ids, or `null` when presence is unknown.
+   */
+  private async fetchConfiguredProviders(
+    origin: string,
+    apiKey: string,
+  ): Promise<ReadonlySet<string> | null> {
+    try {
+      const response = await this.request(`${origin}/ai/settings/connectivity`, {
+        method: 'POST',
+        headers: {
+          ...attributionHeaders(),
+          authorization: `Bearer ${apiKey}`,
+          accept: 'application/json',
+        },
+      })
+      if (!response.ok) return null
+      return parseConfiguredProviders(await response.json() as unknown)
+    } catch {
+      // Connectivity is advisory; the catalog stays usable without marks.
+      return null
+    }
   }
 
   /**

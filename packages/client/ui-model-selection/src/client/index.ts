@@ -23,7 +23,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelDirectoryState } from './directory.ts'
-import { geocrmCombinedLabel, presentGeocrmCatalog } from './geocrm-catalog.ts'
+import { geocrmCombinedLabel, isGeocrmNotConfigured, presentGeocrmCatalog } from './geocrm-catalog.ts'
 import { ModelDirectoryResolver } from './service.ts'
 import type { ModelSelectInjected } from './slots.ts'
 import { ModelSelect } from './ModelSelect.tsx'
@@ -55,7 +55,9 @@ function optionsOf(directory: ModelDirectoryState, t: TranslateNS<'model'>): Sel
       rows.push({
         id: rowId(group.routeId, model.id),
         label: geocrmCombinedLabel(model.id, model.name, group.routeId),
-        detail: model.description !== undefined ? `${group.name} · ${model.description}` : group.name,
+        detail: isGeocrmNotConfigured(model)
+          ? `${group.name} · ${t('notConfigured')}`
+          : model.description !== undefined ? `${group.name} · ${model.description}` : group.name,
         ...(directory.current !== null
           && directory.current.provider === group.routeId
           && directory.current.model === model.id

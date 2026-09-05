@@ -40,6 +40,7 @@ export {
 export type { GeoCrmAdapterOptions, GeoCrmConnectionOptions } from './adapter.ts'
 export {
   DEFAULT_MODELS,
+  GEOCRM_NOT_CONFIGURED_DESCRIPTION,
   STATIC_FLAGSHIP_MODELS,
   catalogEntryName,
   encodeCompositeModelId,
@@ -48,6 +49,12 @@ export {
   resolveAdvisoryModels,
   resolveGeoCrmRoute,
 } from './catalog.ts'
+export {
+  applyKeyPresence,
+  parseConfiguredProviders,
+  providerKeyAliases,
+  vendorHasConfiguredKey,
+} from './keys.ts'
 export type { GeoCrmCatalogEntry, GeoCrmCatalogModel } from './catalog.ts'
 export { geocrmHttpErrorCode, normalizeGeoCrmOrigin, parseGeoCrmErrorBody } from './http.ts'
 export type { GeoCrmErrorBody } from './http.ts'

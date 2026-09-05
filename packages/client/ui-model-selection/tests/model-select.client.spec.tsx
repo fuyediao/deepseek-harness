@@ -261,4 +261,65 @@ describe('ModelSelect GeoCRM vendor groups', () => {
       })
     })
   })
+
+  it('labels an unconfigured GeoCRM vendor and refuses a new pick', () => {
+    const groups = [{
+      id: 'geocrm',
+      name: 'GeoCRM',
+      models: [
+        { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+        {
+          id: 'claude:claude-opus-5',
+          name: 'Opus 5',
+          description: 'geocrm:not-configured',
+        },
+      ],
+    }]
+    const select = vi.fn().mockResolvedValue(true)
+    render(<ModelSelect
+      locked={false}
+      available
+      directory={createSnapshotStore(state({
+        groups,
+        current: { provider: 'geocrm', model: 'chatgpt:gpt-5.6-sol' },
+      }))}
+      load={vi.fn()}
+      select={select}
+      t={t}
+    />)
+
+    fireEvent.click(screen.getByRole('button', { name: /ChatGPT/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
+    const row = screen.getByRole('menuitemradio', { name: /未设定/ })
+    expect(row).toHaveProperty('disabled', true)
+    fireEvent.click(row)
+    expect(select).not.toHaveBeenCalled()
+  })
+
+  it('keeps the current unconfigured GeoCRM model selectable', () => {
+    const groups = [{
+      id: 'geocrm',
+      name: 'GeoCRM',
+      models: [{
+        id: 'claude:claude-opus-5',
+        name: 'Opus 5',
+        description: 'geocrm:not-configured',
+      }],
+    }]
+    render(<ModelSelect
+      locked={false}
+      available
+      directory={createSnapshotStore(state({
+        groups,
+        current: { provider: 'geocrm', model: 'claude:claude-opus-5' },
+      }))}
+      load={vi.fn()}
+      select={vi.fn().mockResolvedValue(true)}
+      t={t}
+    />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Claude/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
+    expect(screen.getByRole('menuitemradio', { name: /未设定/ })).toHaveProperty('disabled', false)
+  })
 })

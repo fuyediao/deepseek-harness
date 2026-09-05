@@ -210,6 +210,30 @@ describe('ui-model-selection dual entry', () => {
       ['ChatGPT \u00b7 GPT-5.6 Sol', 'ChatGPT \u00b7 Flagship'],
       ['DeepSeek \u00b7 DeepSeek V4 Flash', 'DeepSeek'],
     ])
+  })
+
+  it('popup options translate the GeoCRM missing-key sentinel', async () => {
+    const b = await bench({
+      defaultSelection: { provider: 'geocrm', model: 'chatgpt:gpt-5.6-sol' },
+      groups: [{
+        id: 'geocrm',
+        name: 'GeoCRM',
+        models: [
+          { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+          {
+            id: 'claude:claude-opus-5',
+            name: 'Opus 5',
+            description: 'geocrm:not-configured',
+          },
+        ],
+      }],
+    })
+    b.mint('s1')
+    const options = await b.contribution().ui.options(projection('s1'), new AbortController().signal)
+    expect(options.map((o: SelectOption) => [o.label, o.detail])).toEqual([
+      ['ChatGPT \u00b7 GPT-5.6 Sol', 'ChatGPT'],
+      ['Claude \u00b7 Opus 5', 'Claude \u00b7 未设定'],
+    ])
     expect(options[0]).toMatchObject({ active: true })
   })
 

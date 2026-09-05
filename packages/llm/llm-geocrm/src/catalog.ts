@@ -4,6 +4,13 @@
  * @module dsh-llm-geocrm/catalog
  */
 
+/**
+ * Catalog `description` the composer treats as "no vendor key in GeoCRM".
+ * Keep this literal in sync with `GEOCRM_NOT_CONFIGURED` in
+ * `dsh-client-ui-model-selection`.
+ */
+export const GEOCRM_NOT_CONFIGURED_DESCRIPTION = 'geocrm:not-configured'
+
 /** One allowlisted GeoCRM catalog row, matching `GET /ai/models` JSON. */
 export interface GeoCrmCatalogEntry {
   /** Vendor model id sent on the Responses `model` field. */
@@ -16,6 +23,11 @@ export interface GeoCrmCatalogEntry {
   readonly default?: boolean
   /** Whether the model accepts image input at the vendor. */
   readonly vision?: boolean
+  /**
+   * Whether GeoCRM Settings has a BYOK key for this vendor.
+   * Absent means unknown; `false` becomes {@link GEOCRM_NOT_CONFIGURED_DESCRIPTION}.
+   */
+  readonly configured?: boolean
 }
 
 /** Advisory catalog row stored on the adapter config or settings section. */
@@ -143,6 +155,8 @@ export function parseCatalogResponse(body: unknown): GeoCrmCatalogEntry[] {
       ...typeof record.labelEn === 'string' && record.labelEn.length > 0 ? { labelEn: record.labelEn } : {},
       ...record.default === true ? { default: true } : {},
       ...record.vision === true ? { vision: true } : {},
+      ...record.configured === false ? { configured: false } : {},
+      ...record.configured === true ? { configured: true } : {},
     })
   }
   return entries
@@ -157,11 +171,18 @@ export function parseCatalogResponse(body: unknown): GeoCrmCatalogEntry[] {
 export function catalogEntriesToModels(
   route: string,
   entries: readonly GeoCrmCatalogEntry[],
-): { provider: string; id: string; name: string; inputModalities?: readonly ('text' | 'image')[] }[] {
+): {
+  provider: string
+  id: string
+  name: string
+  description?: string
+  inputModalities?: readonly ('text' | 'image')[]
+}[] {
   return entries.map(entry => ({
     provider: route,
     id: encodeCompositeModelId(entry.provider, entry.id),
     name: catalogEntryName(entry),
+    ...entry.configured === false ? { description: GEOCRM_NOT_CONFIGURED_DESCRIPTION } : {},
     ...entry.vision === true ? { inputModalities: ['text', 'image'] as const } : {},
   }))
 }

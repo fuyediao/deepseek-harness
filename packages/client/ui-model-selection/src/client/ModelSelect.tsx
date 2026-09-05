@@ -23,7 +23,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelSelectInjected } from './slots.ts'
-import { geocrmCombinedLabel, presentGeocrmCatalog } from './geocrm-catalog.ts'
+import { geocrmCombinedLabel, isGeocrmNotConfigured, presentGeocrmCatalog } from './geocrm-catalog.ts'
 import css from './ModelSelect.module.css'
 
 /** Which pane the dropdown shows: the two-row root or one drilled-in list. */
@@ -290,6 +290,8 @@ export function ModelSelect(
                       <div className={css.groupTitle} id={headingId}>{group.name}</div>
                       {group.models.map((model) => {
                         const selected = state.current?.provider === group.routeId && state.current.model === model.id
+                        const notConfigured = isGeocrmNotConfigured(model)
+                        const label = geocrmCombinedLabel(model.id, model.name, group.routeId)
                         return (
                           <button
                             ref={itemRef()}
@@ -298,13 +300,16 @@ export function ModelSelect(
                             aria-checked={selected}
                             className={clsx(css.option, selected && css.selected)}
                             key={model.id}
-                            title={geocrmCombinedLabel(model.id, model.name, group.routeId)}
-                            disabled={busy}
+                            title={notConfigured ? `${label} · ${t('notConfigured')}` : label}
+                            disabled={busy || (notConfigured && !selected)}
                             onClick={() => { choose({ provider: group.routeId, model: model.id }) }}
                           >
                             <span className={css.optionCopy}>
-                              <span className={css.modelName}>
-                                {geocrmCombinedLabel(model.id, model.name, group.routeId)}
+                              <span className={css.modelRow}>
+                                <span className={css.modelName}>{label}</span>
+                                {notConfigured && (
+                                  <span className={css.notConfigured}>{t('notConfigured')}</span>
+                                )}
                               </span>
                             </span>
                             <span className={css.check}>

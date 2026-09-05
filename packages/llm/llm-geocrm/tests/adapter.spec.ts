@@ -8,7 +8,7 @@ import {
 import { resolveRetryPolicy } from '@deepseek-ai/dsh-llm'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { GeoCrmAdapter } from '../src/adapter.ts'
-import { DEFAULT_MODELS } from '../src/catalog.ts'
+import { DEFAULT_MODELS, GEOCRM_NOT_CONFIGURED_DESCRIPTION } from '../src/catalog.ts'
 import { mockGeoCrm, writeSse, writeTurn } from './mock-server.ts'
 
 const servers: Array<{ close(): Promise<void> }> = []
@@ -84,6 +84,97 @@ describe('GeoCrmAdapter', () => {
       'zhipu:glm-5.2',
     ])
     expect(server.requests[0]?.headers['user-agent']).toBe(attributionHeaders()['user-agent'])
+  })
+
+  it('marks vendors omitted from connectivity as not configured', async () => {
+    const server = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/connectivity') {
+        response.end(JSON.stringify({
+          models: [{ model: 'openai', ok: true }, { model: 'gemini', ok: false }],
+        }))
+        return
+      }
+      response.end(JSON.stringify({
+        models: [
+          { id: 'gpt-5.6-sol', provider: 'chatgpt', labelEn: 'Sol' },
+          { id: 'gemini-3.1-pro-preview', provider: 'gemini', labelEn: 'Gemini' },
+          { id: 'claude-opus-5', provider: 'claude', labelEn: 'Opus' },
+        ],
+      }))
+    })
+    servers.push(server)
+    const models = await adapterOf(server.origin).listModels('geocrm')
+    expect(models).toEqual([
+      { provider: 'geocrm', id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
+      { provider: 'geocrm', id: 'gemini:gemini-3.1-pro-preview', name: 'Gemini' },
+      {
+        provider: 'geocrm',
+        id: 'claude:claude-opus-5',
+        name: 'Opus',
+        description: GEOCRM_NOT_CONFIGURED_DESCRIPTION,
+      },
+    ])
+    expect(server.requests.some(request => (
+      request.method === 'POST' && request.url === '/ai/settings/connectivity'
+    ))).toBe(true)
+  })
+
+  it('leaves catalog rows unmarked when connectivity is missing or not the probe payload', async () => {
+    const missing = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/connectivity') {
+        response.statusCode = 404
+        response.end('no')
+        return
+      }
+      response.end(JSON.stringify({
+        models: [{ id: 'claude-opus-5', provider: 'claude', labelEn: 'Opus' }],
+      }))
+    })
+    servers.push(missing)
+    expect(await adapterOf(missing.origin).listModels('geocrm')).toEqual([
+      { provider: 'geocrm', id: 'claude:claude-opus-5', name: 'Opus' },
+    ])
+
+    const empty = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/connectivity') {
+        response.end(JSON.stringify({ models: [] }))
+        return
+      }
+      response.end(JSON.stringify({
+        models: [{ id: 'claude-opus-5', provider: 'claude', labelEn: 'Opus' }],
+      }))
+    })
+    servers.push(empty)
+    expect(await adapterOf(empty.origin).listModels('geocrm')).toEqual([{
+      provider: 'geocrm',
+      id: 'claude:claude-opus-5',
+      name: 'Opus',
+      description: GEOCRM_NOT_CONFIGURED_DESCRIPTION,
+    }])
+
+    const garbled = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/connectivity') {
+        response.end('not-json')
+        return
+      }
+      response.end(JSON.stringify({
+        models: [{ id: 'claude-opus-5', provider: 'claude', labelEn: 'Opus' }],
+      }))
+    })
+    servers.push(garbled)
+    expect(await adapterOf(garbled.origin).listModels('geocrm')).toEqual([
+      { provider: 'geocrm', id: 'claude:claude-opus-5', name: 'Opus' },
+    ])
+  })
+
+  it('lists the advisory catalog when the live catalog fetch fails', async () => {
+    const server = await mockGeoCrm((_request, response) => {
+      response.statusCode = 500
+      response.end('no')
+    })
+    servers.push(server)
+    const models = await adapterOf(server.origin).listModels('geocrm')
+    expect(models.map(model => model.id)).toContain('deepseek:deepseek-v4-flash')
   })
 
   it('returns static flagships when discovery has no token', async () => {

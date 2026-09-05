@@ -198,6 +198,21 @@
   min-width: 0;
 }
 
+.modelRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.notConfigured {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+}
+
 .modelName {
   overflow: hidden;
   color: inherit;

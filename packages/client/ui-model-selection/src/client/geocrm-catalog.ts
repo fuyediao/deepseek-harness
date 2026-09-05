@@ -5,6 +5,12 @@
 
 import type { ModelCatalogModel, ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
 
+/**
+ * Catalog `description` that means GeoCRM Settings has no BYOK key.
+ * Must match `GEOCRM_NOT_CONFIGURED_DESCRIPTION` in `dsh-llm-geocrm`.
+ */
+export const GEOCRM_NOT_CONFIGURED = 'geocrm:not-configured'
+
 /** Flagship vendor slugs first, matching GeoCRM Electron's picker order. */
 export const GEOCRM_VENDOR_ORDER = ['chatgpt', 'gemini', 'claude', 'grok'] as const
 
@@ -60,6 +66,15 @@ export function parseGeocrmCompositeId(modelId: string): { vendor?: string; mode
   const separator = modelId.indexOf(':')
   if (separator <= 0) return { model: modelId }
   return { vendor: modelId.slice(0, separator), model: modelId.slice(separator + 1) }
+}
+
+/**
+ * Whether a catalog row is a GeoCRM vendor with no key in Settings.
+ * @param model - picker row (description carries the sentinel).
+ * @returns true when the composer should show Not Configured and refuse a pick.
+ */
+export function isGeocrmNotConfigured(model: { readonly description?: string }): boolean {
+  return model.description === GEOCRM_NOT_CONFIGURED
 }
 
 /**

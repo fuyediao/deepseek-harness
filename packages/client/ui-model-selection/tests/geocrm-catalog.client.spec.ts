@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
 import {
+  GEOCRM_NOT_CONFIGURED,
   geocrmCombinedLabel,
+  isGeocrmNotConfigured,
   parseGeocrmCompositeId,
   presentGeocrmCatalog,
   vendorDisplayName,
@@ -24,6 +26,14 @@ describe('parseGeocrmCompositeId', () => {
     })
     expect(parseGeocrmCompositeId('deepseek-v4-flash')).toEqual({ model: 'deepseek-v4-flash' })
     expect(parseGeocrmCompositeId(':missing')).toEqual({ model: ':missing' })
+  })
+})
+
+describe('isGeocrmNotConfigured', () => {
+  it('recognizes only the GeoCRM missing-key sentinel', () => {
+    expect(isGeocrmNotConfigured({ description: GEOCRM_NOT_CONFIGURED })).toBe(true)
+    expect(isGeocrmNotConfigured({ description: 'Flagship' })).toBe(false)
+    expect(isGeocrmNotConfigured({})).toBe(false)
   })
 })
 
