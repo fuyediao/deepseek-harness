@@ -43,6 +43,10 @@ The add flow is a card carrying the dormant-directory provider select — a bare
 
 The versioned notice is the only `settings.onboarding` step this package registers. API keys are entered on this page. ANY provider the user can already reach ends the first-run setup-card posture; a user with none sees the official DeepSeek card opened until they close it or store a key.
 
+### Desktop sign-in
+
+On the Electron renderer this package also occupies `shell.gate`: the window stays on a GeoCRM sign-in panel until a session token is stored. `dsh web` leaves that seat empty.
+
 ### Extension slots
 
 The section declares two seats for plugins distributed outside this repository, typed in [`src/client/slot-contract.ts`](src/client/slot-contract.ts) and exported from `./client`. `settings.models.provider-card` (keyed) renders inside every card that shows a directory row — a saved row's card, its first-run setup posture, and the add-provider draft — dispatched with `entryKey = settingsNs` and owner props carrying the row's `ConfigurableProviderView`, its configured state, and its confirmed api-key credential state, so one registration under an adapter family's namespace receives every card of that family, hand-declared routes included; the hand-declared draft card has no directory row yet and dispatches nothing until saved. `settings.models.footer` (list) renders after the rows and the add controls. A registrant activates through `ctx.slots.inject` with a type-only import of this package's `/client` entry; without registrants both seats render nothing.

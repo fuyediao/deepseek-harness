@@ -39,6 +39,13 @@ export interface GeoCrmSignInProps {
   configured: boolean
   /** Refresh the card's credential hint after a store or remove. */
   onCredentialChange: () => void
+  /**
+   * After a stored sign-in, the last `list_my_access` probe (or `undefined`
+   * when that probe failed). The desktop cover unlocks only on `desktopAgent`.
+   */
+  onAccess?: (access: GeoCrmAccess | undefined) => void
+  /** Hide the Models-card hint when the form sits on the full-window cover. */
+  hideHint?: boolean
 }
 
 /**
@@ -99,10 +106,13 @@ export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
       setSessionEmail(session.email)
       props.onCredentialChange()
       try {
-        setAccess(await probeAccess(props.origin, session.accessToken))
+        const next = await probeAccess(props.origin, session.accessToken)
+        setAccess(next)
+        props.onAccess?.(next)
       } catch (error: unknown) {
         setAccess(undefined)
         setFailure(error instanceof Error ? error.message : t('accessCheckFailed'))
+        props.onAccess?.(undefined)
       }
     } catch (error: unknown) {
       setFailure(error instanceof Error ? error.message : t('loginFailed'))
@@ -135,7 +145,7 @@ export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
 
   return (
     <div className={styles['signIn']}>
-      <p className={styles['advancedHint']}>{t('signInHint')}</p>
+      {props.hideHint === true ? null : <p className={styles['advancedHint']}>{t('signInHint')}</p>}
       <div className={styles['modeRow']} role="group" aria-label={t('loginMode')}>
         <button
           type="button"

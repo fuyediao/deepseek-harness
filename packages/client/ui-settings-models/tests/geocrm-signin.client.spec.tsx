@@ -53,6 +53,7 @@ describe('GeoCrmSignIn', () => {
   it('signs in with email and shows a missing desktop_agent warning', async () => {
     const storeCredential = vi.fn(() => Promise.resolve(undefined))
     const onCredentialChange = vi.fn()
+    const onAccess = vi.fn()
     vi.stubGlobal('fetch', vi.fn((input: string) => {
       if (String(input).includes('/auth/password')) {
         return jsonResponse({
@@ -65,7 +66,7 @@ describe('GeoCrmSignIn', () => {
         result: JSON.stringify({ role: 'member', desktop_modules: [], readable_entities: [] }),
       })
     }))
-    mount({ operations: operations({ storeCredential }), onCredentialChange })
+    mount({ operations: operations({ storeCredential }), onCredentialChange, onAccess })
     fireEvent.click(screen.getByText(en.loginModeEmail))
     fireEvent.change(screen.getByLabelText(en.loginEmail), { target: { value: 'ada@example.com' } })
     fireEvent.change(screen.getByLabelText(en.loginPassword), { target: { value: 'secret' } })
@@ -75,6 +76,7 @@ describe('GeoCrmSignIn', () => {
     expect(onCredentialChange).toHaveBeenCalled()
     await screen.findByText(`${en.accountSignedIn} ada@example.com`)
     expect(screen.getByText((content) => content.includes(en.accountNoDesktopAgent))).toBeTruthy()
+    expect(onAccess).toHaveBeenCalledWith(expect.objectContaining({ desktopAgent: false }))
     fireEvent.click(screen.getByText(en.loginModeEmployeeId))
     expect(screen.getByLabelText(en.employeeId)).toBeTruthy()
   })

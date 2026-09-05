@@ -9,6 +9,8 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the shell's SlotMap merge (the 'settings.section' entry).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+// Type-only: pulls the frame's SlotMap merge (the 'shell.gate' entry).
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -19,6 +21,9 @@ import { ModelsSection } from './ModelsSection.tsx'
 import type { ModelsSectionInjected } from './ModelsSection.tsx'
 import { WelcomeNotice } from './WelcomeNotice.tsx'
 import type { WelcomeNoticeInjected } from './WelcomeNotice.tsx'
+import { GeoCrmGate } from './GeoCrmGate.tsx'
+import type { GeoCrmGateInjected } from './GeoCrmGate.tsx'
+import { createSignInGate, shouldOccupySignInGate, type SignInGateConfig } from './sign-in-gate.ts'
 import { decodeWelcomeSection, WelcomeNoticeStore } from './welcome-store.ts'
 import { ModelsSettingsStore } from './store.ts'
 import { createModelsOperations } from './operations.ts'
@@ -29,6 +34,7 @@ import { WELCOME_NOTICE_SETTINGS_NAMESPACE } from '../onboarding-copy.ts'
 export type { ModelsSectionInjected, ModelsSectionProps } from './ModelsSection.tsx'
 export type { ModelsFooterOwnerProps, ProviderCardExtrasOwnerProps } from './slot-contract.ts'
 export type { ModelsKey } from './locales.ts'
+export type { SignInGateConfig } from './sign-in-gate.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -67,10 +73,12 @@ export const inject = [
 /**
  * Register the Models section once the `settings.section` declaration is on
  * the ledger, wire its store to the connection, and keep it fresh on every
- * pushed invalidation (settings, credentials, or provider topology).
+ * pushed invalidation (settings, credentials, or provider topology). The
+ * desktop renderer also occupies `shell.gate` until a GeoCRM session exists.
  * @param ctx - client root context.
+ * @param config - optional test override that forces the desktop cover.
  */
-export function apply(ctx: ClientContext): void {
+export function apply(ctx: ClientContext, config: SignInGateConfig = {}): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-models: copy dictionaries')
 
   const schema = createSettingsSchemaOperations(ctx.settingsSchema)
@@ -136,4 +144,25 @@ export function apply(ctx: ClientContext): void {
     order: -100,
     inject: welcomeInjected,
   }, WelcomeNotice))
+
+  if (!shouldOccupySignInGate(config)) return
+
+  const gate = createSignInGate(ctx.settingsScope.describe(), operations)
+  void gate.refresh()
+  ctx.effect(() => {
+    const dispose = ctx.remote.$on('credentials/reference-updated', (refs) => {
+      if (!gate.handlesCredentialRefs(refs)) return
+      void gate.refresh()
+    })
+    return dispose
+  }, 'ui-settings-models: sign-in gate')
+  ctx.slots.inject('shell.gate', () => ctx.slots.register({
+    name: 'shell.gate',
+    inject: (): GeoCrmGateInjected => ({
+      operations,
+      t,
+      unlock: gate.unlock,
+      hooks: { gate: gate.store },
+    }),
+  }, GeoCrmGate))
 }

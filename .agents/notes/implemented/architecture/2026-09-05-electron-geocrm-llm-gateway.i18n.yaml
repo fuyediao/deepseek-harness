@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.md
-2026-09-05-electron-geocrm-llm-gateway.md: d9231ced8b85953b2456b2cc478ff04bc6c71384
-2026-09-05-electron-geocrm-llm-gateway.zh.md: 5cce3533a5a100cb6507a499868be35900b61012
+2026-09-05-electron-geocrm-llm-gateway.md: e2bd549272c38b1a5344b3b8dc8ce48d2b9647b0
+2026-09-05-electron-geocrm-llm-gateway.zh.md: 9c82c2499a2d51151e66be2297b2061f700a0cbf

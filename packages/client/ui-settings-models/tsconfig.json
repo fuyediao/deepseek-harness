@@ -27,6 +27,9 @@
       "path": "../ui-settings"
     },
     {
+      "path": "../ui-layout"
+    },
+    {
       "path": "../locale"
     },
     {

@@ -200,6 +200,8 @@
     - id: ui-settings-general
       name: '@deepseek-ai/dsh-client-ui-settings-general'
 
+    # Occupies `shell.gate` in the Electron renderer (`dsh-app:`). Web leaves
+    # that seat empty. Sign-in protocol stays in this package, not the bundle.
     - id: ui-settings-models
       name: '@deepseek-ai/dsh-client-ui-settings-models'
 

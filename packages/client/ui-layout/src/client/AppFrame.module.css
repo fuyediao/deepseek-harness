@@ -117,3 +117,14 @@
 .overlayLayer > * {
   pointer-events: auto;
 }
+
+.gateLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.gateLayer > * {
+  pointer-events: auto;
+}

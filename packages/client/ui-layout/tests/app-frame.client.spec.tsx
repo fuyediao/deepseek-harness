@@ -12,6 +12,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { useSyncExternalStore } from 'react'
 import { AppFrame } from '@deepseek-ai/dsh-client-ui-layout/src/client/AppFrame.tsx'
 import type { AppFrameProps } from '@deepseek-ai/dsh-client-ui-layout/src/client/AppFrame.tsx'
@@ -54,7 +55,7 @@ function hookOf<T>(inst: { subscribe: (fn: () => void) => () => void; getSnapsho
   return function useSelector<S>(sel: (s: T) => S): S { return sel(useSyncExternalStore(inst.subscribe, inst.getSnapshot)) }
 }
 
-function mountFrame() {
+function mountFrame(options: { gate?: ReactNode } = {}) {
   window.innerWidth = frameWidth // first-render viewport source before the observer fires
   const instance = createLayoutStore().create()
   const slotCalls: { key: string; props: unknown }[] = []
@@ -64,6 +65,8 @@ function mountFrame() {
     if (key === 'conversation') return <div data-testid="center-content" />
     if (key === 'details') return <div data-testid="details-content" />
     if (key === 'conversation.empty') return <div data-testid="empty-content" />
+    if (key === 'shell.overlay') return null
+    if (key === 'shell.gate') return options.gate ?? null
     return <div data-testid="other-content" />
   }) as AppFrameProps['renderSlot']
   const useSessions = ((sel: (s: SessionListState) => unknown) => {
@@ -405,6 +408,18 @@ describe('AppFrame — guard branches', () => {
       handle.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, clientX: 360, bubbles: true }))
     })
     expect(instance.getSnapshot().sidebar).toBe(360)
+  })
+
+  it('paints a blocking occupant in the gate layer above the overlay', () => {
+    const { frame, getByTestId } = mountFrame({
+      gate: <div data-testid="gate-content">Sign in</div>,
+    })
+    expect(getByTestId('gate-content').closest('[data-shell-gate]')).not.toBeNull()
+    const gate = frame.querySelector('[data-shell-gate]')
+    const overlay = frame.querySelector('[data-shell-overlay]')
+    expect(gate).not.toBeNull()
+    expect(overlay).not.toBeNull()
+    expect(Boolean(gate!.compareDocumentPosition(overlay!) & Node.DOCUMENT_POSITION_PRECEDING)).toBe(true)
   })
 
   it('zero-width resize reports are ignored (display:none window)', () => {

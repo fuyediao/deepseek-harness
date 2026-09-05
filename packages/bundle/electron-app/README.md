@@ -43,7 +43,7 @@ Each window session composes its own agent from the shipped presets (the `standa
 
 ### Models page
 
-The desktop Models page shows the `geocrm` card from [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.md) and does not mount `llm-deepseek`. Set the GeoCRM API origin in the invoking directory `.env` (`GEOCRM_BASE_URL` or `GEOCRM_DEPLOYMENT_DOMAIN`); the default is a local `geocrm-api` at `http://127.0.0.1:3001`. Sign in with a GeoCRM employee ID or email (or paste a session token). Vendor API keys stay in GeoCRM Settings. A password sign-in stays signed in through `POST /auth/refresh`. Every desktop session also receives [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.md) so the agent can call GeoCRM Harness CRM tools as that user. See the [GeoCRM gateway note](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.md).
+The desktop window opens on a GeoCRM sign-in panel (`shell.gate`) before the conversation shell. The Models page shows the `geocrm` card from [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.md) and does not mount `llm-deepseek`. Set the GeoCRM API origin in the invoking directory `.env` (`GEOCRM_BASE_URL` or `GEOCRM_DEPLOYMENT_DOMAIN`); the default is a local `geocrm-api` at `http://127.0.0.1:3001`. Sign in with a GeoCRM employee ID or email (or paste a session token). Vendor API keys stay in GeoCRM Settings. A password sign-in stays signed in through `POST /auth/refresh`. Every desktop session also receives [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.md) so the agent can call GeoCRM Harness CRM tools as that user. See the [GeoCRM gateway note](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.md).
 
 -----
 

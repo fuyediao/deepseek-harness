@@ -6,9 +6,9 @@ Start the desktop app through the [root README](../../../README.md#run) with `ds
 
 The desktop app uses the same conversation view, model settings, and session history as the [Web UI](./index.md). It opens no network port: the window talks to the Host over a local IPC socket, so there is no URL to copy or share.
 
-## Configure a model
+## Sign in
 
-Put the GeoCRM API origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (the same host GeoCRM Electron uses as `VITE_DEPLOYMENT_DOMAIN`). A missing file keeps `http://127.0.0.1:3001`. Open **Settings → Models**, sign in with your GeoCRM employee ID or email (or paste a session token), and save. Vendor API keys stay in GeoCRM Settings. The account needs `desktop_agent`. A password sign-in stays signed in; the Host refreshes the session before the access JWT expires. The `geocrm` route and GeoCRM CRM tools become usable immediately without restarting the app.
+The window opens on a GeoCRM sign-in panel. Sign in with your employee ID or email before the conversation shell is usable. Put the GeoCRM API origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (the same host GeoCRM Electron uses as `VITE_DEPLOYMENT_DOMAIN`). A missing file keeps `http://127.0.0.1:3001`. A stored `GEOCRM_HARNESS_TOKEN` skips the panel. The account needs `desktop_agent`. Sign out from **Settings → Models** returns you to the panel. Vendor API keys stay in GeoCRM Settings. A password sign-in stays signed in; the Host refreshes the session before the access JWT expires. The `geocrm` route and GeoCRM CRM tools become usable immediately without restarting the app.
 
 The [model configuration guide](./providers.md) covers the Web UI DeepSeek card and custom OpenAI-compatible endpoints.
 

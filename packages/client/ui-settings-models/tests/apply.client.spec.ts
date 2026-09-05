@@ -12,6 +12,7 @@ import {
 } from '../src/onboarding-copy.ts'
 import { ModelsSection } from '../src/client/ModelsSection.tsx'
 import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
+import { GeoCrmGate } from '../src/client/GeoCrmGate.tsx'
 import { apply as hostApply } from '../src/index.ts'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
@@ -54,6 +55,7 @@ function declare(slots: SlotRegistry): () => void {
       children: {
         'settings.section': { kind: 'list', scope: 'root' },
         'settings.onboarding': { kind: 'list', scope: 'root' },
+        'shell.gate': { kind: 'single', scope: 'root' },
       },
     } as never,
     () => null,
@@ -107,6 +109,38 @@ describe('ui-settings-models apply', () => {
     expect(after.slots.entries('settings.onboarding')).toHaveLength(1)
     // The self-inflicted ledger notifications hit the duplicate guard.
     expect(after.slots.entries('settings.section')).toHaveLength(1)
+    expect(after.slots.entries('shell.gate')).toHaveLength(0)
+  })
+
+  it('occupies shell.gate only when the desktop cover is required', async () => {
+    const off = await bench()
+    declare(off.slots)
+    await off.ctx.plugin({ inject: [...inject], apply }).await()
+    expect(off.slots.entries('shell.gate')).toHaveLength(0)
+
+    const on = await bench()
+    declare(on.slots)
+    const fiber = on.ctx.plugin({
+      inject: [...inject],
+      apply: (ctx) => { apply(ctx, { requireSignIn: true }) },
+    })
+    await fiber.await()
+    const entry = on.slots.entries('shell.gate')[0]!
+    expect(entry.component).toBe(GeoCrmGate)
+    const injected = (entry.inject as unknown as () => import('../src/client/GeoCrmGate.tsx').GeoCrmGateInjected)()
+    await vi.waitFor(() => {
+      expect(injected.hooks.gate.getSnapshot().phase).toBe('locked')
+    })
+    injected.unlock()
+    expect(injected.hooks.gate.getSnapshot().phase).toBe('open')
+    on.remote.emit('credentials/reference-updated', ['OPENAI_API_KEY'])
+    expect(injected.hooks.gate.getSnapshot().phase).toBe('open')
+    on.remote.emit('credentials/reference-updated', ['GEOCRM_HARNESS_TOKEN'])
+    await vi.waitFor(() => {
+      expect(injected.hooks.gate.getSnapshot().phase).toBe('locked')
+    })
+    await fiber.dispose()
+    expect(on.slots.entries('shell.gate')).toHaveLength(0)
   })
 
   it('the label thunk follows the active locale without re-registration', async () => {
