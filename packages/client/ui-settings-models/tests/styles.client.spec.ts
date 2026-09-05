@@ -14,6 +14,7 @@ const css = [
   'ModelsSection.module.css',
   'GeoCrmGate.module.css',
   'GeoCrmBrand.module.css',
+  'GeoCrmSignIn.module.css',
 ].map(name => readFileSync(fileURLToPath(new URL(`../src/client/${name}`, import.meta.url)), 'utf8')).join('\n')
 // The theme package maps `./styles/*` to `./src/styles/*`, so the declarations
 // stay on the source plane rather than needing a build.

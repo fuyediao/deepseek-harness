@@ -12,7 +12,7 @@ export const DESKTOP_WINDOW_CHROME = {
 } as const
 
 /** Native window and taskbar name for this desktop product. */
-export const DESKTOP_PRODUCT_NAME = 'GeoCRM'
+export const DESKTOP_PRODUCT_NAME = 'GeoCRM Harness'
 
 /** Product suffix the shared official frontend writes into `document.title`. */
 export const UPSTREAM_WINDOW_TITLE = 'DeepSeek Harness'
@@ -29,7 +29,7 @@ export interface DesktopTitleHost {
 }
 
 /**
- * Rewrite a renderer document title so the native window shows GeoCRM.
+ * Rewrite a renderer document title so the native window shows GeoCRM Harness.
  * Session titles stay; only the shipped frontend product suffix changes.
  * @param title - `document.title` from the renderer.
  * @returns the native window title.
@@ -40,7 +40,7 @@ export function desktopWindowTitle(title: string): string {
 }
 
 /**
- * Pin the native window name to GeoCRM and keep later renderer titles rewritten.
+ * Pin the native window name to GeoCRM Harness and keep later renderer titles rewritten.
  * @param window - the constructed BrowserWindow.
  */
 export function applyDesktopWindowTitle(window: DesktopTitleHost): void {

@@ -11,6 +11,8 @@ import {
   refreshCredentialRef,
   resolveEmployeeEmail,
   signInWithPassword,
+  emailFromAccessToken,
+  fetchSessionEmail,
 } from '../src/client/geocrm-auth.ts'
 
 afterEach(() => {
@@ -163,6 +165,67 @@ describe('signInWithPassword', () => {
     })))
     await expect(signInWithPassword('http://127.0.0.1:3001', 'ada@example.com', 'secret'))
       .rejects.toThrow(/Invalid credentials/)
+  })
+})
+
+function jwtWith(payload: object): string {
+  const encoded = btoa(JSON.stringify(payload))
+    .replace(/=+$/u, '')
+    .replace(/\+/gu, '-')
+    .replace(/\//gu, '_')
+  return `aaa.${encoded}.sig`
+}
+
+describe('emailFromAccessToken', () => {
+  it('reads a lowercased email claim and ignores everything else', () => {
+    expect(emailFromAccessToken(jwtWith({ email: 'Ada@Example.com' }))).toBe('ada@example.com')
+    expect(emailFromAccessToken(jwtWith({ email: '   ' }))).toBeUndefined()
+    expect(emailFromAccessToken(jwtWith({}))).toBeUndefined()
+    expect(emailFromAccessToken('not-a-jwt')).toBeUndefined()
+    expect(emailFromAccessToken('aaa..sig')).toBeUndefined()
+    expect(emailFromAccessToken('aaa.%%%')).toBeUndefined()
+  })
+})
+
+describe('fetchSessionEmail', () => {
+  it('returns the JWT claim without calling /auth/me', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(fetchSessionEmail('http://127.0.0.1:3001', jwtWith({ email: 'Ada@Example.com' })))
+      .resolves.toBe('ada@example.com')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('falls back to GET /auth/me when the token has no email', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ user: { email: 'Ada@Example.com' } })),
+    })))
+    await expect(fetchSessionEmail(
+      'http://127.0.0.1:3001/',
+      'opaque',
+      new AbortController().signal,
+    )).resolves.toBe('ada@example.com')
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: false,
+      text: () => Promise.resolve('nope'),
+    })))
+    await expect(fetchSessionEmail('http://127.0.0.1:3001', 'opaque')).resolves.toBeUndefined()
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: true,
+      text: () => Promise.resolve('not-json'),
+    })))
+    await expect(fetchSessionEmail('http://127.0.0.1:3001', 'opaque')).resolves.toBeUndefined()
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ user: { email: '   ' } })),
+    })))
+    await expect(fetchSessionEmail('http://127.0.0.1:3001', 'opaque')).resolves.toBeUndefined()
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({})),
+    })))
+    await expect(fetchSessionEmail('http://127.0.0.1:3001', 'opaque')).resolves.toBeUndefined()
   })
 })
 

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/llm/llm-geocrm/README.md
-README.md: 92a88ecbb3ba11ee8ec3b37a849e9ccf5477abc9
-README.zh.md: be30137f7dfbb4209522a1ca8174f1bfcd23951c
+README.md: 24a3cb59fd72e9a95b677fb3e273c8da2dfb22ac
+README.zh.md: 5a0c2ee0d6d6d41107dfbc4c16e1f3ee73400da1

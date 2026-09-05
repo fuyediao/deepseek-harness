@@ -75,7 +75,8 @@ describe('GeoCrmGate', () => {
       origin: GEOCRM_DEFAULT_ORIGIN,
       keyRef: GEOCRM_DEFAULT_KEY_REF,
     })
-    expect(screen.getByRole('status').textContent).toBe(en.gateChecking)
+    expect(screen.getByRole('status').textContent).toContain(en.gateChecking)
+    expect(screen.getByText(en.brandName)).toBeTruthy()
   })
 
   it('unlocks after a password sign-in that grants desktop_agent', async () => {
@@ -94,11 +95,37 @@ describe('GeoCrmGate', () => {
       keyRef: GEOCRM_DEFAULT_KEY_REF,
     }, { unlock })
     expect(screen.getByText(en.gateTitle)).toBeTruthy()
+    expect(screen.getByText(en.brandName)).toBeTruthy()
     expect(screen.queryByText(en.signInHint)).toBeNull()
     fireEvent.click(screen.getByText(en.loginModeEmail))
     fireEvent.change(screen.getByLabelText(en.loginEmail), { target: { value: 'ada@example.com' } })
     fireEvent.change(screen.getByLabelText(en.loginPassword), { target: { value: 'secret' } })
     fireEvent.click(screen.getByText(en.signIn))
+    await waitFor(() => { expect(unlock).toHaveBeenCalled() })
+  })
+
+  it('unlocks after a Google sign-in that grants desktop_agent', async () => {
+    const unlock = vi.fn()
+    const payload = btoa(JSON.stringify({ email: 'ada@example.com' }))
+      .replace(/=+$/u, '')
+      .replace(/\+/gu, '-')
+      .replace(/\//gu, '_')
+    vi.stubGlobal('__dshElectronBridge__', {
+      signInWithGoogle: () => Promise.resolve({
+        ok: true as const,
+        accessToken: `aaa.${payload}.sig`,
+        refreshToken: 'refresh',
+      }),
+    })
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse({
+      result: JSON.stringify({ role: 'member', desktop_modules: ['desktop_agent'] }),
+    })))
+    mount({
+      phase: 'locked',
+      origin: GEOCRM_DEFAULT_ORIGIN,
+      keyRef: GEOCRM_DEFAULT_KEY_REF,
+    }, { unlock })
+    fireEvent.click(screen.getByText(en.signInWithGoogle))
     await waitFor(() => { expect(unlock).toHaveBeenCalled() })
   })
 

@@ -33,7 +33,7 @@ The primary field on an editor card is a single **API key** input — the page n
 
 ### Editing a provider
 
-The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. Profile `headers` remain deployment configuration in `settings.yaml` or Cordis config and have no Models-page editor. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
+The collapsed Customized settings fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. Profile `headers` remain deployment configuration in `settings.yaml` or Cordis config and have no Models-page editor. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
 
 ### Adding and deleting providers
 
@@ -45,7 +45,7 @@ The versioned notice is the only `settings.onboarding` step this package registe
 
 ### Desktop sign-in
 
-On the Electron renderer this package also occupies `shell.gate` and the sidebar brand seats: the window stays on a GeoCRM sign-in panel until a session token is stored, and the title bar and sidebar show GeoCRM. `dsh web` leaves those seats to the official brand.
+On the Electron renderer this package also occupies `shell.gate` and the sidebar brand seats: the window stays on a centered GeoCRM Harness sign-in card until a session token is stored, and the title bar and sidebar show GeoCRM Harness. The card offers Continue with Google (system browser, loopback return) plus employee ID or email. `dsh web` leaves those seats to the official brand and hides the Google button.
 
 ### Extension slots
 

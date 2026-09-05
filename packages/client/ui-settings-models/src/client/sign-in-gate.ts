@@ -51,7 +51,7 @@ export interface SignInGateDescribe {
    * Read the current sync snapshot.
    * @returns status plus the last good view, if any.
    */
-  getSnapshot(): { view?: { namespaces: readonly SettingsNamespaceView[] } }
+  getSnapshot(): { view?: { namespaces?: readonly SettingsNamespaceView[] } | undefined }
 }
 
 /** Optional apply argument that forces the cover in tests. */
@@ -92,9 +92,9 @@ export function stringField(source: unknown, key: string): string | undefined {
  * @returns origin and key reference, using shipped defaults when `llm-geocrm` is absent.
  */
 export function connectionFromDescribe(
-  view: { namespaces: readonly SettingsNamespaceView[] } | undefined,
+  view: { namespaces?: readonly SettingsNamespaceView[] } | undefined,
 ): { origin: string; keyRef: string } {
-  const row = view?.namespaces.find(namespace => namespace.ns === GEOCRM_SETTINGS_NS)
+  const row = view?.namespaces?.find(namespace => namespace.ns === GEOCRM_SETTINGS_NS)
   return {
     origin: resolveCardOrigin(
       stringField(row?.base, 'baseURL'),
@@ -117,7 +117,7 @@ export function createSignInGate(
   store: SnapshotStore<SignInGateState>
   refresh: () => Promise<void>
   unlock: () => void
-  handlesCredentialRefs: (refs: readonly string[]) => boolean
+  handlesCredentialRefs: (refs: string | readonly string[]) => boolean
 } {
   const store = createSnapshotStore<SignInGateState>({
     phase: 'checking',
@@ -129,8 +129,9 @@ export function createSignInGate(
     refresh: () => refreshSignInGate(store, describe, operations.describeCredential),
     unlock: () => { store.update((draft) => { draft.phase = 'open' }) },
     handlesCredentialRefs: (refs) => {
+      const list = typeof refs === 'string' ? [refs] : refs
       const { keyRef } = store.getSnapshot()
-      return refs.includes(keyRef) || refs.includes(refreshCredentialRef(keyRef))
+      return list.includes(keyRef) || list.includes(refreshCredentialRef(keyRef))
     },
   }
 }

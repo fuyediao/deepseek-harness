@@ -29,10 +29,10 @@ describe('desktop window chrome', () => {
     expect(window.setMenuBarVisibility).toHaveBeenCalledWith(false)
   })
 
-  it('rewrites the official frontend product suffix to GeoCRM', () => {
+  it('rewrites the official frontend product suffix to GeoCRM Harness', () => {
     expect(desktopWindowTitle('')).toBe(DESKTOP_PRODUCT_NAME)
     expect(desktopWindowTitle('DeepSeek Harness')).toBe(DESKTOP_PRODUCT_NAME)
-    expect(desktopWindowTitle('First title — DeepSeek Harness')).toBe('First title — GeoCRM')
+    expect(desktopWindowTitle('First title — DeepSeek Harness')).toBe('First title — GeoCRM Harness')
   })
 
   it('keeps later renderer titles rewritten after the window exists', () => {
@@ -50,6 +50,6 @@ describe('desktop window chrome', () => {
     const event = { preventDefault: vi.fn() }
     listener(event, 'Revised title — DeepSeek Harness')
     expect(event.preventDefault).toHaveBeenCalled()
-    expect(window.setTitle).toHaveBeenLastCalledWith('Revised title — GeoCRM')
+    expect(window.setTitle).toHaveBeenLastCalledWith('Revised title — GeoCRM Harness')
   })
 })

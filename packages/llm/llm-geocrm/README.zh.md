@@ -53,7 +53,7 @@ kind: "package-reference"
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-llm-geocrm)是每个已接受字段及其 JSDoc 的完整来源。
 
-令牌必须属于拥有 `desktop_agent` 且已在 GeoCRM 设置中保存 BYOK 密钥的 GeoCRM 用户。把 VPS 源站写进调用目录的 `.env`：`GEOCRM_BASE_URL=https://api.example.com` 或 `GEOCRM_DEPLOYMENT_DOMAIN=example.com`（与 GeoCRM Electron 的 `VITE_DEPLOYMENT_DOMAIN` 使用同一主机名）。模型卡片通过 GeoCRM `POST /auth/password` 登录（工号会先解析）并保存 refresh 令牌。在访问 JWT 距离 `exp` 不足五分钟时，本插件会调用 `POST /auth/refresh`。401/403 为 `AUTH`；422 `missing_api_key` 为 `INVALID_REQUEST`（在 GeoCRM 中添加供应商密钥，而不是在这里）。
+令牌必须属于拥有 `desktop_agent` 且已在 GeoCRM 设置中保存 BYOK 密钥的 GeoCRM 用户。把 VPS 源站写进调用目录的 `.env`：`GEOCRM_BASE_URL=https://api.example.com` 或 `GEOCRM_DEPLOYMENT_DOMAIN=example.com`（与 GeoCRM Electron 的 `VITE_DEPLOYMENT_DOMAIN` 使用同一主机名）。模型卡片会保存来自 GeoCRM `POST /auth/password`（工号会先解析）或桌面 Google 登录的 refresh 令牌。在访问 JWT 距离 `exp` 不足五分钟时，本插件会调用 `POST /auth/refresh`。401/403 为 `AUTH`；422 `missing_api_key` 为 `INVALID_REQUEST`（在 GeoCRM 中添加供应商密钥，而不是在这里）。
 
 -----
 

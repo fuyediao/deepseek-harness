@@ -144,7 +144,7 @@ describe('ui-settings-models apply', () => {
     const brandInjected = (
       brandName.inject as unknown as () => import('../src/client/GeoCrmBrand.tsx').GeoCrmBrandNameInjected
     )()
-    expect(brandInjected.t('brandName')).toBe('GeoCRM')
+    expect(brandInjected.t('brandName')).toBe('GeoCRM Harness')
     const welcome = (
       on.slots.entries('settings.onboarding')
         .find(candidate => candidate.options.id === 'welcome-notice')!

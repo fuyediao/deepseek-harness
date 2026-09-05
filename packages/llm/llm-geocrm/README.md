@@ -53,7 +53,7 @@ A request selects the route with `provider: geocrm`. Model ids are composite `pr
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-llm-geocrm) is the exhaustive source for every accepted field and its JSDoc.
 
-The token must belong to a GeoCRM user who has `desktop_agent` and BYOK keys stored in GeoCRM Settings. Put the VPS origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (same host GeoCRM Electron stores as `VITE_DEPLOYMENT_DOMAIN`). The Models card signs in through GeoCRM `POST /auth/password` (employee ID resolves first) and stores the refresh token. Before a request whose access JWT is within five minutes of `exp`, this plugin calls `POST /auth/refresh`. A 401/403 is `AUTH`; a 422 `missing_api_key` is `INVALID_REQUEST` (add the vendor key in GeoCRM, not here).
+The token must belong to a GeoCRM user who has `desktop_agent` and BYOK keys stored in GeoCRM Settings. Put the VPS origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (same host GeoCRM Electron stores as `VITE_DEPLOYMENT_DOMAIN`). The Models card stores a refresh token from GeoCRM `POST /auth/password` (employee ID resolves first) or from desktop Google sign-in. Before a request whose access JWT is within five minutes of `exp`, this plugin calls `POST /auth/refresh`. A 401/403 is `AUTH`; a 422 `missing_api_key` is `INVALID_REQUEST` (add the vendor key in GeoCRM, not here).
 
 -----
 

@@ -1,15 +1,16 @@
 /**
  * GeoCRM public login and harness access probe used by the desktop Models card.
  * The renderer talks to the GeoCRM API origin the same way GeoCRM Electron
- * does (`POST /auth/password`, `POST /auth/public/resolve-employee-id`). The
- * access JWT and refresh token are stored through the credentials Remote; this
- * module never keeps the password.
+ * does (`POST /auth/password`, `POST /auth/public/resolve-employee-id`). Desktop
+ * Google sign-in arrives as the same access/refresh pair after the Electron
+ * shell finishes `GET /auth/google`. The access JWT and refresh token are
+ * stored through the credentials Remote; this module never keeps the password.
  */
 
 /** Employee id accepted by GeoCRM after normalization (`PS` plus four digits). */
 export const EMPLOYEE_ID_PATTERN = /^PS\d{4}$/iu
 
-/** One successful password sign-in. */
+/** One successful GeoCRM sign-in (password or desktop Google). */
 export interface GeoCrmSession {
   /** Supabase access JWT stored as `GEOCRM_HARNESS_TOKEN`. */
   readonly accessToken: string
@@ -189,6 +190,62 @@ export async function signInWithPassword(
       : {},
     email: userEmail,
   }
+}
+
+/**
+ * Read the account email from a GeoCRM access JWT.
+ * @param accessToken - session JWT.
+ * @returns lowercased email when the `email` claim is a non-empty string.
+ */
+export function emailFromAccessToken(accessToken: string): string | undefined {
+  const encoded = accessToken.split('.')[1]
+  if (encoded === undefined || encoded.length === 0) return undefined
+  try {
+    const json = JSON.parse(decodeJwtPayload(encoded)) as { email?: unknown }
+    if (typeof json.email === 'string' && json.email.trim().length > 0) {
+      return json.email.trim().toLowerCase()
+    }
+  } catch {
+    // Opaque tokens still store; the card omits the address.
+  }
+  return undefined
+}
+
+function decodeJwtPayload(encoded: string): string {
+  const padded = encoded.replace(/-/gu, '+').replace(/_/gu, '/')
+  const pad = padded.length % 4 === 0 ? '' : '='.repeat(4 - padded.length % 4)
+  return globalThis.atob(`${padded}${pad}`)
+}
+
+/**
+ * Resolve the account email from the access JWT, or `GET /auth/me`.
+ * @param origin - GeoCRM API origin.
+ * @param token - session JWT.
+ * @param signal - optional abort.
+ * @returns lowercased email when either source has one.
+ */
+export async function fetchSessionEmail(
+  origin: string,
+  token: string,
+  signal?: AbortSignal,
+): Promise<string | undefined> {
+  const fromToken = emailFromAccessToken(token)
+  if (fromToken !== undefined) return fromToken
+  const response = await fetch(`${normalizeGeoCrmOrigin(origin)}/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+    ...signal === undefined ? {} : { signal },
+  })
+  const raw = await response.text()
+  if (!response.ok) return undefined
+  try {
+    const parsed = JSON.parse(raw) as { user?: { email?: unknown } }
+    if (typeof parsed.user?.email === 'string' && parsed.user.email.trim().length > 0) {
+      return parsed.user.email.trim().toLowerCase()
+    }
+  } catch {
+    // The card omits the address when /auth/me is not JSON.
+  }
+  return undefined
 }
 
 /**

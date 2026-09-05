@@ -1,5 +1,5 @@
 ---
-description: "The GeoCRM desktop app: an Electron window running the same conversation interface as the Web GUI, with no listening network server."
+description: "The GeoCRM Harness desktop app: an Electron window running the same conversation interface as the Web GUI, with no listening network server."
 kind: "package-bundle"
 ---
 
@@ -33,7 +33,7 @@ dsh electron
 dsh electron --no-window
 ```
 
-`dsh electron` is the deliberate alias for `--profile electron`, matching `dsh web`. After startup an Electron window titled GeoCRM opens on the sign-in panel, then the conversation view. `--no-window` starts the IPC listener without spawning Electron — useful for a keyless composition smoke that has no display; nothing model-facing is reachable in that mode, since nothing connects to the socket.
+`dsh electron` is the deliberate alias for `--profile electron`, matching `dsh web`. After startup an Electron window titled GeoCRM Harness opens on the sign-in panel, then the conversation view. `--no-window` starts the IPC listener without spawning Electron — useful for a keyless composition smoke that has no display; nothing model-facing is reachable in that mode, since nothing connects to the socket.
 
 `pnpm run dist:electron` writes an unsigned win-x64 NSIS installer under `dist-electron/`. That exe is the Electron shell: it starts the bundled Node `dsh --profile electron --no-window` tree and connects as the window, so the Host does not spawn a second Electron process.
 
@@ -43,7 +43,7 @@ Each window session composes its own agent from the shipped presets (the `standa
 
 ### Models page
 
-The desktop window opens on a GeoCRM sign-in panel (`shell.gate`) before the conversation shell. The Models page shows the `geocrm` card from [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.md) and does not mount `llm-deepseek`. Set the GeoCRM API origin in the invoking directory `.env` (`GEOCRM_BASE_URL` or `GEOCRM_DEPLOYMENT_DOMAIN`); the default is a local `geocrm-api` at `http://127.0.0.1:3001`. Sign in with a GeoCRM employee ID or email (or paste a session token). Vendor API keys stay in GeoCRM Settings. A password sign-in stays signed in through `POST /auth/refresh`. Every desktop session also receives [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.md) so the agent can call GeoCRM Harness CRM tools as that user. See the [GeoCRM gateway note](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.md).
+The desktop window opens on a GeoCRM Harness sign-in panel (`shell.gate`) before the conversation shell. The Models page shows the `geocrm` card from [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.md) and does not mount `llm-deepseek`. Set the GeoCRM API origin in the invoking directory `.env` (`GEOCRM_BASE_URL` or `GEOCRM_DEPLOYMENT_DOMAIN`); the default is a local `geocrm-api` at `http://127.0.0.1:3001`. Sign in with Google, a GeoCRM employee ID or email, or paste a session token. Vendor API keys stay in GeoCRM Settings. A password or Google sign-in stays signed in through `POST /auth/refresh`. Every desktop session also receives [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.md) so the agent can call GeoCRM Harness CRM tools as that user. See the [GeoCRM gateway note](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.md).
 
 -----
 

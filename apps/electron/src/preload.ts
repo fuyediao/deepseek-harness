@@ -16,6 +16,7 @@
 
 import { contextBridge, ipcRenderer } from 'electron'
 import type { ElectronIpcStreamErrorFrame, ElectronIpcStreamItemFrame } from '@deepseek-ai/dsh-electron-ipc'
+import { GOOGLE_SIGN_IN_CHANNEL, type GoogleSignInOutcome } from './google-sign-in-ipc.ts'
 
 /** One decoded stream push the main process relays to this window. */
 type StreamPushFrame = ElectronIpcStreamItemFrame | { readonly t: 'stream-end'; readonly id: string } | ElectronIpcStreamErrorFrame
@@ -25,6 +26,7 @@ interface DshElectronBridge {
   streamOpen(id: string, endpoint: string, payload: unknown): void
   streamAbort(id: string): void
   onStreamFrame(listener: (frame: StreamPushFrame) => void): () => void
+  signInWithGoogle(origin: string): Promise<GoogleSignInOutcome>
 }
 
 const STREAM_FRAME_CHANNEL = 'dsh:stream-frame'
@@ -42,6 +44,9 @@ const bridge: DshElectronBridge = {
     const wrapped = (_event: unknown, frame: StreamPushFrame): void => { listener(frame) }
     ipcRenderer.on(STREAM_FRAME_CHANNEL, wrapped)
     return () => { ipcRenderer.removeListener(STREAM_FRAME_CHANNEL, wrapped) }
+  },
+  signInWithGoogle(origin) {
+    return ipcRenderer.invoke(GOOGLE_SIGN_IN_CHANNEL, { origin }) as Promise<GoogleSignInOutcome>
   },
 }
 
@@ -76,7 +81,7 @@ function installTransport(): void {
         if (frame.id !== id) return
         if (frame.t === 'stream-item') queue.push({ kind: 'item', value: frame.value })
         else if (frame.t === 'stream-end') done = true
-        else if (frame.t === 'stream-error') { done = true; failure = frame.failure }
+        else { done = true; failure = frame.failure }
         wake?.()
         wake = undefined
       })

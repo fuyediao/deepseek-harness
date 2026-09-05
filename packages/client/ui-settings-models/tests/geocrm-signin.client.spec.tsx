@@ -172,4 +172,94 @@ describe('GeoCrmSignIn', () => {
     await screen.findByText('refresh-locked')
     expect(removeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN')
   })
+
+  it('hides Google sign-in when the desktop bridge is absent', () => {
+    mount()
+    expect(screen.queryByText(en.signInWithGoogle)).toBeNull()
+    expect(screen.queryByText(en.signInDivider)).toBeNull()
+  })
+
+  it('stores a Google session from the desktop bridge', async () => {
+    const payload = btoa(JSON.stringify({ email: 'ada@example.com' }))
+      .replace(/=+$/u, '')
+      .replace(/\+/gu, '-')
+      .replace(/\//gu, '_')
+    const signInWithGoogle = vi.fn(() => Promise.resolve({
+      ok: true as const,
+      accessToken: `aaa.${payload}.sig`,
+      refreshToken: 'refresh',
+    }))
+    vi.stubGlobal('__dshElectronBridge__', { signInWithGoogle })
+    const storeCredential = vi.fn(() => Promise.resolve(undefined))
+    const onAccess = vi.fn()
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse({
+      result: JSON.stringify({ role: 'member', desktop_modules: ['desktop_agent'] }),
+    })))
+    mount({ operations: operations({ storeCredential }), onAccess })
+    fireEvent.click(screen.getByText(en.signInWithGoogle))
+    await waitFor(() => { expect(storeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN', `aaa.${payload}.sig`) })
+    expect(storeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH', 'refresh')
+    expect(signInWithGoogle).toHaveBeenCalledWith('http://127.0.0.1:3001')
+    expect(onAccess).toHaveBeenCalledWith(expect.objectContaining({ desktopAgent: true }))
+    await screen.findByText(`${en.accountSignedIn} ada@example.com`)
+    expect(screen.queryByText(en.signInWithGoogle)).toBeNull()
+  })
+
+  it('asks /auth/me when the Google JWT has no email and maps a cancelled attempt', async () => {
+    const signInWithGoogle = vi.fn()
+      .mockResolvedValueOnce({ ok: true, accessToken: 'opaque', refreshToken: 'refresh' })
+      .mockRejectedValueOnce(new Error('cancelled'))
+    vi.stubGlobal('__dshElectronBridge__', { signInWithGoogle })
+    vi.stubGlobal('fetch', vi.fn((input: string) => {
+      if (String(input).includes('/auth/me')) {
+        return jsonResponse({ user: { email: 'ada@example.com' } })
+      }
+      return jsonResponse({
+        result: JSON.stringify({ role: 'member', desktop_modules: ['desktop_agent'] }),
+      })
+    }))
+    mount()
+    fireEvent.click(screen.getByText(en.signInWithGoogle))
+    await screen.findByText(`${en.accountSignedIn} ada@example.com`)
+    fireEvent.click(screen.getByText(en.signOut))
+    await waitFor(() => { expect(screen.getByText(en.signInWithGoogle)).toBeTruthy() })
+    fireEvent.click(screen.getByText(en.signInWithGoogle))
+    await screen.findByText(en.googleSignInCancelled)
+  })
+
+  it('hides Google sign-in when a session is already stored', () => {
+    vi.stubGlobal('__dshElectronBridge__', {
+      signInWithGoogle: () => Promise.resolve({ ok: false, error: 'x' }),
+    })
+    mount({ configured: true })
+    expect(screen.queryByText(en.signInWithGoogle)).toBeNull()
+  })
+
+  it('stores a Google session without an email when /auth/me is empty', async () => {
+    vi.stubGlobal('__dshElectronBridge__', {
+      signInWithGoogle: () => Promise.resolve({ ok: true as const, accessToken: 'opaque' }),
+    })
+    const storeCredential = vi.fn(() => Promise.resolve(undefined))
+    vi.stubGlobal('fetch', vi.fn((input: string) => {
+      if (String(input).includes('/auth/me')) {
+        return jsonResponse({})
+      }
+      return jsonResponse({
+        result: JSON.stringify({ role: 'member', desktop_modules: ['desktop_agent'] }),
+      })
+    }))
+    mount({ operations: operations({ storeCredential }) })
+    fireEvent.click(screen.getByText(en.signInWithGoogle))
+    await waitFor(() => { expect(storeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN', 'opaque') })
+    expect(screen.queryByText(en.accountSignedIn, { exact: false })).toBeNull()
+  })
+
+  it('reports a non-Error Google rejection as a generic failure', async () => {
+    vi.stubGlobal('__dshElectronBridge__', {
+      signInWithGoogle: () => Promise.reject('down'),
+    })
+    mount()
+    fireEvent.click(screen.getByText(en.signInWithGoogle))
+    await screen.findByText(en.googleSignInFailed)
+  })
 })

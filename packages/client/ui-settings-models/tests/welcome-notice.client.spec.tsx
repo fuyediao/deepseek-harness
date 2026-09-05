@@ -108,8 +108,8 @@ describe('WelcomeNotice', () => {
     })
     expect(en.welcomeBody).toBe(WELCOME_NOTICE_COPY.en.body)
     expect(zh.welcomeBody).toBe(WELCOME_NOTICE_COPY.zh.body)
-    expect(en.desktopWelcomeTitle).toBe('Welcome to GeoCRM')
-    expect(zh.desktopWelcomeTitle).toBe('欢迎使用 GeoCRM')
+    expect(en.desktopWelcomeTitle).toBe('Welcome to GeoCRM Harness')
+    expect(zh.desktopWelcomeTitle).toBe('欢迎使用 GeoCRM Harness')
   })
 
   it('renders the desktop GeoCRM notice when the desktop flag is set', async () => {

@@ -52,6 +52,10 @@ describe('connectionFromDescribe', () => {
       origin: GEOCRM_DEFAULT_ORIGIN,
       keyRef: GEOCRM_DEFAULT_KEY_REF,
     })
+    expect(connectionFromDescribe({})).toEqual({
+      origin: GEOCRM_DEFAULT_ORIGIN,
+      keyRef: GEOCRM_DEFAULT_KEY_REF,
+    })
   })
 
   it('prefers composition origin, then the user or resolved card origin', () => {
@@ -136,7 +140,9 @@ describe('refreshSignInGate', () => {
       { describeCredential: () => Promise.resolve(undefined) },
     )
     expect(gate.handlesCredentialRefs(['OPENAI_API_KEY'])).toBe(false)
+    expect(gate.handlesCredentialRefs('OPENAI_API_KEY')).toBe(false)
     expect(gate.handlesCredentialRefs(['GEOCRM_HARNESS_TOKEN'])).toBe(true)
+    expect(gate.handlesCredentialRefs('GEOCRM_HARNESS_TOKEN')).toBe(true)
     expect(gate.handlesCredentialRefs(['GEOCRM_HARNESS_REFRESH'])).toBe(true)
   })
 })

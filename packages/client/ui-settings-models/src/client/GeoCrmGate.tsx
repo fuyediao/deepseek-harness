@@ -9,11 +9,29 @@ import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { GeoCrmAccess } from './geocrm-auth.ts'
 import { refreshCredentialRef } from './geocrm-auth.ts'
+import { GeoCrmBrandMark } from './GeoCrmBrand.tsx'
 import { GeoCrmSignIn } from './GeoCrmSignIn.tsx'
 import type { ModelsOperations } from './operations.ts'
 import type { SignInGateState } from './sign-in-gate.ts'
 import type { en } from './locales.ts'
 import css from './GeoCrmGate.module.css'
+
+/** Copy function shared by the cover chrome. */
+type GateCopy = (key: keyof typeof en) => string
+
+/**
+ * Render the product mark and name above the cover title.
+ * @param t - section copy.
+ * @returns the brand row.
+ */
+function GateBrand({ t }: { t: GateCopy }) {
+  return (
+    <div className={css.brand}>
+      <GeoCrmBrandMark size={36} />
+      <span className={css.brandName}>{t('brandName')}</span>
+    </div>
+  )
+}
 
 /** Registration-side dependencies of {@link GeoCrmGate}. */
 export interface GeoCrmGateInjected {
@@ -50,7 +68,10 @@ export function GeoCrmGate(props: GeoCrmGateProps): ReactNode {
   if (state.phase === 'checking') {
     return (
       <div className={css.panel} role="status" aria-live="polite">
-        <p className={css.checking}>{t('gateChecking')}</p>
+        <div className={css.card}>
+          <GateBrand t={t} />
+          <p className={css.checking}>{t('gateChecking')}</p>
+        </div>
       </div>
     )
   }
@@ -68,8 +89,8 @@ export function GeoCrmGate(props: GeoCrmGateProps): ReactNode {
   return (
     <div className={css.panel}>
       <div className={css.card}>
+        <GateBrand t={t} />
         <h1 className={css.title}>{t('gateTitle')}</h1>
-        <p className={css.subtitle}>{t('gateSubtitle')}</p>
         <GeoCrmSignIn
           origin={state.origin}
           keyRef={state.keyRef}
@@ -79,6 +100,7 @@ export function GeoCrmGate(props: GeoCrmGateProps): ReactNode {
           keyLocked={false}
           configured={false}
           hideHint
+          cover
           onCredentialChange={() => {}}
           onAccess={onAccess}
         />

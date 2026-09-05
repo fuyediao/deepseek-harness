@@ -12,8 +12,9 @@
  * Host over the IPC socket as {@link ElectronIpcFetchRequestFrame} frames,
  * `/` renders the dist's `index.html` with the Host's current index
  * injection rows, and every other path is a static file read from the dist
- * root. There is no listening `webServer`; the desktop shell never binds a
- * port. The preload script (`./preload.ts`) carries the live event stream
+ * root. There is no Host `webServer`. Google sign-in binds a short-lived
+ * `127.0.0.1` loopback only while the system browser returns tokens. The
+ * preload script (`./preload.ts`) carries the live event stream
  * (`window.__DSH_TRANSPORT__.openStream`) over the same socket, because a
  * custom protocol answers request/response, not a persistent multiplexed
  * channel.
@@ -25,7 +26,7 @@ import { createConnection, type Socket } from 'node:net'
 import { readFile } from 'node:fs/promises'
 import { extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, ipcMain, protocol, type IpcMainEvent } from 'electron'
+import { app, BrowserWindow, ipcMain, protocol, shell, type IpcMainEvent } from 'electron'
 import { renderIndexInjections, type IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import {
   ElectronIpcFrameReader,
@@ -45,6 +46,11 @@ import {
   DESKTOP_WINDOW_CHROME,
   hideDesktopMenuBar,
 } from './window-chrome.ts'
+import {
+  createGoogleSignInLock,
+  GOOGLE_SIGN_IN_CHANNEL,
+  originFromIpcPayload,
+} from './google-sign-in.ts'
 
 const SCHEME = 'dsh-app'
 const STREAM_FRAME_CHANNEL = 'dsh:stream-frame'
@@ -229,6 +235,19 @@ function installStreamBridge(connection: HostConnection): void {
   })
 }
 
+function installGoogleSignIn(): void {
+  const lock = createGoogleSignInLock()
+  ipcMain.handle(GOOGLE_SIGN_IN_CHANNEL, async (_event, payload: unknown) => {
+    const outcome = await lock.run(originFromIpcPayload(payload), {
+      openExternal: async (url) => {
+        await shell.openExternal(url)
+      },
+    })
+    if (outcome.ok) BrowserWindow.getAllWindows()[0]?.focus()
+    return outcome
+  })
+}
+
 async function createWindow(connection: HostConnection): Promise<void> {
   const preloadPath = fileURLToPath(new URL('./preload.cjs', import.meta.url))
   const window = new BrowserWindow({
@@ -293,6 +312,7 @@ async function main(): Promise<void> {
     })
   }
   installStreamBridge(connection)
+  installGoogleSignIn()
   app.setName(DESKTOP_PRODUCT_NAME)
   await app.whenReady()
   protocol.handle(SCHEME, createProtocolHandler(connection, distRoot))

@@ -1,5 +1,5 @@
 ---
-description: "GeoCRM 桌面应用：以 Electron 窗口运行与 Web GUI 相同的对话界面，且不监听任何网络端口。"
+description: "GeoCRM Harness 桌面应用：以 Electron 窗口运行与 Web GUI 相同的对话界面，且不监听任何网络端口。"
 kind: "package-bundle"
 ---
 
@@ -33,7 +33,7 @@ dsh electron
 dsh electron --no-window
 ```
 
-`dsh electron` 是 `--profile electron` 的专用别名，与 `dsh web` 对应。启动后会打开标题为 GeoCRM 的 Electron 窗口，先显示登录页，再进入会话视图。`--no-window` 只启动 IPC 监听而不启动 Electron——适合无显示环境下的无密钥组合烟雾测试；该模式下没有任何客户端连接 socket，因此模型面不可达。
+`dsh electron` 是 `--profile electron` 的专用别名，与 `dsh web` 对应。启动后会打开标题为 GeoCRM Harness 的 Electron 窗口，先显示登录页，再进入会话视图。`--no-window` 只启动 IPC 监听而不启动 Electron——适合无显示环境下的无密钥组合烟雾测试；该模式下没有任何客户端连接 socket，因此模型面不可达。
 
 `pnpm run dist:electron` 会在 `dist-electron/` 下写出一份未签名的 win-x64 NSIS 安装程序。该 exe 就是 Electron 壳：它会启动捆绑的 Node `dsh --profile electron --no-window` 配置树并以窗口身份连接，因此 Host 不会再拉起第二个 Electron 进程。
 
@@ -43,7 +43,7 @@ dsh electron --no-window
 
 ### 模型页
 
-桌面窗口会在会话界面之前打开 GeoCRM 登录页（`shell.gate`）。模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。在调用目录的 `.env` 里设置 GeoCRM API 源站（`GEOCRM_BASE_URL` 或 `GEOCRM_DEPLOYMENT_DOMAIN`）；默认是本地 `geocrm-api` 的 `http://127.0.0.1:3001`。用 GeoCRM 工号或邮箱登录（或粘贴会话令牌）。供应商 API 密钥留在 GeoCRM 设置中。密码登录会通过 `POST /auth/refresh` 保持会话。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该用户身份调用 GeoCRM Harness CRM 工具。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
+桌面窗口会在会话界面之前打开 GeoCRM Harness 登录页（`shell.gate`）。模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。在调用目录的 `.env` 里设置 GeoCRM API 源站（`GEOCRM_BASE_URL` 或 `GEOCRM_DEPLOYMENT_DOMAIN`）；默认是本地 `geocrm-api` 的 `http://127.0.0.1:3001`。用 Google、GeoCRM 工号或邮箱登录，或粘贴会话令牌。供应商 API 密钥留在 GeoCRM 设置中。密码或 Google 登录会通过 `POST /auth/refresh` 保持会话。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该用户身份调用 GeoCRM Harness CRM 工具。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
 
 -----
 

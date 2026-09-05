@@ -19,6 +19,6 @@ describe('GeoCrmBrand', () => {
 
   it('renders the localized product name', () => {
     const { container } = render(<GeoCrmBrandName t={key => en[key]} />)
-    expect(container.textContent).toBe('GeoCRM')
+    expect(container.textContent).toBe('GeoCRM Harness')
   })
 })

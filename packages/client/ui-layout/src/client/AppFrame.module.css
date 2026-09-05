@@ -107,24 +107,26 @@
   border-color: var(--dsw-alias-border-l3);
 }
 
-.overlayLayer {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  pointer-events: none;
-}
-
-.overlayLayer > * {
-  pointer-events: auto;
-}
-
+/* Absolute layers still occupy a grid area. Without a full-frame area,
+   `inset: 0` only fills the first column (the sidebar). */
+.overlayLayer,
 .gateLayer {
   position: absolute;
   inset: 0;
-  z-index: 30;
+  grid-column: 1 / -1;
+  grid-row: 1;
   pointer-events: none;
 }
 
+.overlayLayer {
+  z-index: 20;
+}
+
+.gateLayer {
+  z-index: 30;
+}
+
+.overlayLayer > *,
 .gateLayer > * {
   pointer-events: auto;
 }
