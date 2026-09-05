@@ -43,7 +43,7 @@ Each window session composes its own agent from the shipped presets (the `standa
 
 ### Models page
 
-The desktop window opens on a GeoCRM Harness sign-in panel (`shell.gate`) before the conversation shell. The Models page shows the `geocrm` card from [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.md) and does not mount `llm-deepseek`. Set the GeoCRM API origin in the invoking directory `.env` (`GEOCRM_BASE_URL` or `GEOCRM_DEPLOYMENT_DOMAIN`); the default is a local `geocrm-api` at `http://127.0.0.1:3001`. Sign in with Google, a GeoCRM employee ID or email, or paste a session token. Vendor API keys stay in GeoCRM Settings. A password or Google sign-in stays signed in through `POST /auth/refresh`. Every desktop session also receives [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.md) so the agent can call GeoCRM Harness CRM tools as that user. See the [GeoCRM gateway note](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.md).
+The desktop window opens on a GeoCRM Harness sign-in panel (`shell.gate`) before the conversation shell. The Models page shows the `geocrm` card from [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.md) and does not mount `llm-deepseek`. Set the GeoCRM API origin in the invoking directory `.env` (`GEOCRM_BASE_URL` or `GEOCRM_DEPLOYMENT_DOMAIN`); the default is a local `geocrm-api` at `http://127.0.0.1:3001`. Sign in with Google, a GeoCRM employee ID or email, or paste a session token. Vendor API keys stay in GeoCRM Settings. A password or Google sign-in stays signed in through `POST /auth/refresh`. Every desktop session also receives [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.md) so the agent can call GeoCRM Harness CRM tools as that signed-in user and follow that account's grants. See the [GeoCRM gateway note](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.md).
 
 -----
 
@@ -103,7 +103,7 @@ The Electron main process (`apps/electron`) connects the socket, registers a pri
 
 #### What the model sees
 
-The `app:electron-surface` global section orients the model to the desktop window: there is exactly one session per window, no address bar, no separate tab context, and no URL to share since the app has no listening network server. The `harness:source` section identifies the on-disk Harness implementation, matching every other surface.
+The `app:electron-surface` global section orients the model to the desktop window: there is exactly one session per window, no address bar, no separate tab context, and no URL to share since the app has no listening network server. The deployment persona names the GeoCRM Harness work agent. The host-plane [`tool:geocrm` section](../../llm/tool-geocrm/README.md#model-experience) tells the model to follow the signed-in user's GeoCRM grants. The `harness:source` section identifies the on-disk Harness implementation, matching every other surface.
 
 #### Token effect
 

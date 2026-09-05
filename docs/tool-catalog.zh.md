@@ -44,7 +44,7 @@
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
-| `@deepseek-ai/dsh-tool-geocrm` | `count_records`、`create_record`、`delete_record`、`get_record`、`list_entities`、`list_my_access`、`search_records`、`summarize_records`、`update_record` | `ctx.tools`、`GEOCRM_HARNESS_TOKEN or the llm-geocrm settings section` | `tool/call`、`tool/result` | - | 每个工具都用已登录会话 JWT POST 到 GeoCRM `/ai/harness/tools/{name}`。实体枚举保持开放；GeoCRM ACL 会拒绝未授权实体。随产品发布的 electron profile 在宿主平面挂载这一行。 |
+| `@deepseek-ai/dsh-tool-geocrm` | `count_records`、`create_record`、`delete_record`、`get_record`、`list_entities`、`list_my_access`、`search_records`、`summarize_records`、`update_record` | `ctx.tools`、`ctx.systemPrompt`、`GEOCRM_HARNESS_TOKEN or the llm-geocrm settings section` | `tool/call`、`tool/result` | - | 每个工具都用已登录会话 JWT POST 到 GeoCRM `/ai/harness/tools/{name}`。实体枚举保持开放；GeoCRM ACL 会拒绝未授权实体。随产品发布的 electron profile 在宿主平面挂载这一行。 |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 

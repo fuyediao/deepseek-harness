@@ -54,14 +54,15 @@ kind: "package-reference"
 <details>
 <summary>实现内部细节——点击展开</summary>
 
-每个已注册工具都是薄的 HTTP 代理。`execute` 解析源站与有效 JWT（在 `exp` 临近时通过 `POST /auth/refresh` 刷新），把 `{ arguments }` POST 到 `/ai/harness/tools/{name}`，并返回 GeoCRM 的结果文本。实体枚举保持开放：调用方不能读或写的实体由 GeoCRM 拒绝。上传类工具（`upload_file`、`prepare_upload`、`finalize_upload`、`delete_file`、`list_upload_kinds`）未注册。
+每个已注册工具都是薄的 HTTP 代理。`execute` 解析源站与有效 JWT（在 `exp` 临近时通过 `POST /auth/refresh` 刷新），把 `{ arguments }` POST 到 `/ai/harness/tools/{name}`，并返回 GeoCRM 的结果文本。实体枚举保持开放：调用方不能读或写的实体由 GeoCRM 拒绝。上传类工具（`upload_file`、`prepare_upload`、`finalize_upload`、`delete_file`、`list_upload_kinds`）未注册。`apply` 还会注册 `tool:geocrm` 提示词段，要求模型在任何 CRM 读写之前先调用 `list_my_access`，再调用 `list_entities`。该段位于 `web_search` 之前，因此 CRM 问题不会先走公网搜索。
 
 ### 源码对照
 
 | 文件 | 职责 |
 |---|---|
-| [`src/index.ts`](src/index.ts) | 插件 `apply`、连接解析、令牌解析 |
+| [`src/index.ts`](src/index.ts) | 插件 `apply`、连接解析、令牌解析、提示词段 |
 | [`src/catalog.ts`](src/catalog.ts) | 工具名、描述与参数 schema |
+| [`src/guidance.ts`](src/guidance.ts) | `tool:geocrm` 跨调用 ACL 路由文本 |
 | [`src/http.ts`](src/http.ts) | Harness 工具 POST 与错误文本 |
 
 </details>
@@ -84,7 +85,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-模型看到生成的 [GeoCRM 工具 schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-geocrm)：`list_my_access`、`list_entities`、`search_records`、`get_record`、`count_records`、`summarize_records`、`create_record`、`update_record` 与 `delete_record`。描述要求模型在读写之前先调用 `list_my_access`，再调用 `list_entities`。
+模型看到生成的 [GeoCRM 工具 schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-geocrm)：`list_my_access`、`list_entities`、`search_records`、`get_record`、`count_records`、`summarize_records`、`create_record`、`update_record` 与 `delete_record`。描述与 `tool:geocrm` 段要求模型在读写之前先调用 `list_my_access`，再调用 `list_entities`，周期报告优先用 `summarize_records`，并且只在 `list_entities` 列出对应授权时写行。
 
 #### Token 影响
 
@@ -92,7 +93,7 @@ kind: "package-reference"
 
 #### KV Cache 影响
 
-工具 schema 在挂载期间是稳定前缀。更改源站或令牌不会改变 schema；只有下一次 execute 使用新连接。
+工具 schema 与 `tool:geocrm` 段在挂载期间是稳定前缀。更改源站或令牌不会改变它们；只有下一次 execute 使用新连接。
 
 ## 已知限制与延后事项
 

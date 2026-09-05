@@ -43,7 +43,7 @@ dsh electron --no-window
 
 ### 模型页
 
-桌面窗口会在会话界面之前打开 GeoCRM Harness 登录页（`shell.gate`）。模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。在调用目录的 `.env` 里设置 GeoCRM API 源站（`GEOCRM_BASE_URL` 或 `GEOCRM_DEPLOYMENT_DOMAIN`）；默认是本地 `geocrm-api` 的 `http://127.0.0.1:3001`。用 Google、GeoCRM 工号或邮箱登录，或粘贴会话令牌。供应商 API 密钥留在 GeoCRM 设置中。密码或 Google 登录会通过 `POST /auth/refresh` 保持会话。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该用户身份调用 GeoCRM Harness CRM 工具。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
+桌面窗口会在会话界面之前打开 GeoCRM Harness 登录页（`shell.gate`）。模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。在调用目录的 `.env` 里设置 GeoCRM API 源站（`GEOCRM_BASE_URL` 或 `GEOCRM_DEPLOYMENT_DOMAIN`）；默认是本地 `geocrm-api` 的 `http://127.0.0.1:3001`。用 Google、GeoCRM 工号或邮箱登录，或粘贴会话令牌。供应商 API 密钥留在 GeoCRM 设置中。密码或 Google 登录会通过 `POST /auth/refresh` 保持会话。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该已登录用户身份调用 GeoCRM Harness CRM 工具，并遵循该账号的授权。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
 
 -----
 
@@ -103,7 +103,7 @@ Electron 主进程（`apps/electron`）连接该 socket，注册一个特权 `ds
 
 #### 模型所见
 
-`app:electron-surface` 全局段会为模型指明桌面窗口的方向：每个窗口恰好对应一个会话，没有地址栏，没有独立的标签页上下文，也没有可分享的 URL，因为本应用不监听任何网络端口。`harness:source` 段标识磁盘上的 Harness 实现位置，与其他表层一致。
+`app:electron-surface` 全局段会为模型指明桌面窗口的方向：每个窗口恰好对应一个会话，没有地址栏，没有独立的标签页上下文，也没有可分享的 URL，因为本应用不监听任何网络端口。部署级人设把模型称为 GeoCRM Harness 工作智能体。宿主平面的 [`tool:geocrm` 段](../../llm/tool-geocrm/README.zh.md#model-experience)要求模型遵循已登录用户的 GeoCRM 授权。`harness:source` 段标识磁盘上的 Harness 实现位置，与其他表层一致。
 
 #### Token 影响
 

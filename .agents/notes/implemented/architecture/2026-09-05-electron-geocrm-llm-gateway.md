@@ -22,14 +22,14 @@ The Electron window occupies `shell.gate` before the conversation shell is usabl
 
 The desktop product name is GeoCRM Harness: native window title, NSIS `productName`, sidebar brand occupants (priority `-10`, so they shadow the official DeepSeek mark), the GeoCRM map-pin mark, the blank-session hero (transparent pin, no DeepSeek headline or preview pill), sign-in cover, desktop welcome notice, `dsh electron` help text, and the `app:electron-surface` prompt. Package names, the `dsh` CLI verb, and `dsh web` keep DeepSeek Harness.
 
-`@deepseek-ai/dsh-tool-geocrm` registers first-party GeoCRM Harness tools on the electron host plane (`list_my_access`, `list_entities`, search/count/summarize, create/update/delete). Each call posts to `/ai/harness/tools/{name}` with the stored JWT. Upload tools stay in GeoCRM. `dsh web` and headless do not mount this row.
+`@deepseek-ai/dsh-tool-geocrm` registers first-party GeoCRM Harness tools on the electron host plane (`list_my_access`, `list_entities`, search/count/summarize, create/update/delete) and the `tool:geocrm` prompt section. Each call posts to `/ai/harness/tools/{name}` with the stored JWT. The section tells the model to call `list_my_access` then `list_entities` before any CRM read or write, prefer `summarize_records` for period reports, and write only when `list_entities` lists the grant. GeoCRM ACL remains the authority; entity enums stay open. Upload tools stay in GeoCRM. `dsh web` and headless do not mount this row. The electron deployment persona names the GeoCRM Harness work agent. The shipped `standard` preset still shadows that persona with a coding-agent line; the host-plane section is what default desktop sessions keep.
 
 ## Testing
 
 - `packages/llm/llm-geocrm/tests` cover catalog ids, HTTP mapping, Responses translation, adapter fetch, plugin `apply`, and session refresh.
 - `packages/client/ui-settings-models/tests` cover the GeoCRM session bar and model list, cover sign-in HTTP, Google desktop invoke, refresh-token persist, `desktop_agent` probe, the `shell.gate` cover, and desktop brand occupancy including the blank-session hero.
 - `apps/electron/tests/window-chrome.spec.ts` rewrites the official frontend title suffix and the local-build fallbacks (`DSH Local Build`, `DSH 本地构建`) to GeoCRM Harness. `apps/electron/tests/google-sign-in.spec.ts` covers the loopback authorize URL, CSRF state, token POST, and a late request after the listener closes.
-- `packages/llm/tool-geocrm/tests` cover connection resolution, token resolution, and harness tool POST.
+- `packages/llm/tool-geocrm/tests` cover connection resolution, token resolution, harness tool POST, and the `tool:geocrm` prompt section.
 
 ## Alternatives considered
 
@@ -51,10 +51,16 @@ The desktop product name is GeoCRM Harness: native window title, NSIS `productNa
 
 **Run Google OAuth inside an Electron `BrowserWindow`.** Rejected: Google refuses OAuth in embedded browsers. The system browser plus a loopback `next` matches RFC 8252 and needs no GoTrue redirect allow-list change (`redirect_to` stays `{api}/auth/callback`).
 
+**Filter the Host tool schema from `list_my_access`.** Rejected: GeoCRM Electron advertises the full first-party set. GeoCRM refuses unauthorized entities and writes.
+
+**Change the shared `standard` preset persona.** Rejected: `dsh web` uses the same preset and is not a GeoCRM work agent.
+
+**Ship a duplicate electron-only `geocrm` preset as the default.** Rejected: it would copy the entire `standard` composition. The host-plane `tool:geocrm` section is the work-agent block default sessions keep.
+
 ## Consequences
 
 - The desktop window shows a GeoCRM Harness sign-in panel before the conversation shell. Continue with Google opens the system browser; employee ID / email stay on that panel. The taskbar, title bar, sidebar, and blank-session hero show GeoCRM Harness. Settings → Models still shows GeoCRM, not DeepSeek: the model catalog, Sign out, and a token-paste fallback under Customized. Vendor keys stay in GeoCRM Settings; the user needs `desktop_agent`.
-- Every electron session inherits GeoCRM CRM tools. GeoCRM ACL refuses reads and writes the signed-in user cannot perform. Isolation overlays disable `tool-geocrm` so e2e catalogs stay free of that origin.
+- Every electron session inherits GeoCRM CRM tools and the `tool:geocrm` section. GeoCRM ACL refuses reads and writes the signed-in user cannot perform. Isolation overlays disable `tool-geocrm` so e2e catalogs stay free of that origin.
 - Web search on the desktop profile has no DeepSeek search provider. `web_fetch` still uses `http`.
 - Composite model ids (`deepseek:deepseek-v4-flash`) are what the composer and `agent-default-model` store. A bare colliding id is refused.
 - The Host keeps a password or Google sign-in alive through `POST /auth/refresh`. A pasted access JWT without a refresh token still expires. A revoked refresh token fails the next request with `AUTH`.

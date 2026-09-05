@@ -18,11 +18,11 @@ Click **Choose workspace**, add the project directory where you started `dsh`, a
 
 ## Run a task
 
-Start a session and send:
+Start a session and send a CRM question or a coding task:
 
-> Summarize this repository and identify its main packages.
+> Summarize this month's orders for my groups.
 
-The agent can read and edit workspace files, run commands, delegate work, and maintain a plan. The desktop app asks before operations that require approval under the active permission policy.
+The agent calls GeoCRM tools as the signed-in user. GeoCRM refuses entities and writes that account cannot perform. The agent can also read and edit workspace files, run commands, delegate work, and maintain a plan. The desktop app asks before operations that require approval under the active permission policy.
 
 ## Continue
 

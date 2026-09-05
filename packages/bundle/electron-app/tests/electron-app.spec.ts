@@ -246,6 +246,14 @@ describe('electron-app runtime glue', () => {
     expect(patch).toContain('id: session-controller')
   })
 
+  it('keeps the desktop work-agent persona and host-plane GeoCRM tools', () => {
+    const patch = readFileSync(fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8')
+    expect(patch).toContain('You are the GeoCRM Harness work agent powered by the {{model}} model.')
+    expect(patch).not.toContain('You are a coding agent powered by the {{model}} model.')
+    expect(patch).toContain('id: tool-geocrm')
+    expect(patch).toContain("name: '@deepseek-ai/dsh-tool-geocrm'")
+  })
+
   it('mounts the native directory-flow surface next to the native host picker', () => {
     const patch = readFileSync(fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8')
     expect(patch).toContain('id: directory-picker')

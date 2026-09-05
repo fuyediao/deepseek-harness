@@ -1,6 +1,7 @@
 /**
- * Register GeoCRM first-party Harness tools on `ctx.tools`. Each call posts
- * to `{origin}/ai/harness/tools/{name}` with `GEOCRM_HARNESS_TOKEN`. Origin
+ * Register GeoCRM first-party Harness tools on `ctx.tools` and the
+ * `tool:geocrm` prompt section. Each call posts to
+ * `{origin}/ai/harness/tools/{name}` with `GEOCRM_HARNESS_TOKEN`. Origin
  * and token reference prefer the live `llm-geocrm` settings section when that
  * namespace is registered. A launch-environment origin wins over a stored
  * `baseURL`.
@@ -17,16 +18,19 @@ import {
 } from '@deepseek-ai/dsh-llm-geocrm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-system-prompt'
 import { GEOCRM_TOOLS } from './catalog.ts'
+import { GEOCRM_TOOL_GUIDANCE } from './guidance.ts'
 import { callHarnessTool } from './http.ts'
 
 export const name = 'tool-geocrm'
-export const inject = ['tools']
+export const inject = ['tools', 'systemPrompt']
 
 const DEFAULT_API_KEY_ENV = 'GEOCRM_HARNESS_TOKEN'
 
 export { GEOCRM_TOOLS } from './catalog.ts'
 export type { GeoCrmToolSpec } from './catalog.ts'
+export { GEOCRM_TOOL_GUIDANCE } from './guidance.ts'
 export { callHarnessTool, parseToolError } from './http.ts'
 
 /**
@@ -100,11 +104,16 @@ export async function resolveToken(ctx: Context, connection: GeoCrmToolConnectio
 }
 
 /**
- * Register the GeoCRM Harness tools.
- * @param ctx - host context with `tools` injected.
+ * Register the GeoCRM Harness tools and the `tool:geocrm` prompt section.
+ * @param ctx - host context with `tools` and `systemPrompt` injected.
  * @param config - composition entry config.
  */
 export function apply(ctx: Context, config: Config): void {
+  ctx.systemPrompt.section({
+    name: 'tool:geocrm',
+    order: ctx.systemPrompt.getSectionOrder('TOOL_GEOCRM'),
+    text: GEOCRM_TOOL_GUIDANCE,
+  })
   for (const spec of GEOCRM_TOOLS) {
     ctx.tools.register(defineTool({
       name: spec.name,

@@ -5,6 +5,7 @@ import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as ToolGeocrm from '../src/index.ts'
 import { GEOCRM_TOOLS } from '../src/catalog.ts'
+import { GEOCRM_TOOL_GUIDANCE } from '../src/guidance.ts'
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -136,6 +137,12 @@ describe('apply', () => {
         kind: 'other',
         title: 'create_record',
       })
+      const assembly = await ctx.systemPrompt.assemble()
+      const section = assembly.sections.find(entry => entry.name === 'tool:geocrm')
+      expect(section?.text).toBe(GEOCRM_TOOL_GUIDANCE)
+      expect(section?.text).toContain('Call list_my_access, then list_entities')
+      expect(ctx.systemPrompt.getSectionOrder('TOOL_GEOCRM'))
+        .toBeLessThan(ctx.systemPrompt.getSectionOrder('TOOL_WEB_SEARCH'))
     } finally {
       await ctx.fiber.dispose()
     }

@@ -352,7 +352,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     pkg: 'system-prompt',
     title: 'System prompt assembly registry',
     mode: 'core',
-    consumers: ['agent-loop', 'tools', 'tool-fs', 'tool-terminal', 'tool-web'],
+    consumers: ['agent-loop', 'tools', 'tool-fs', 'tool-terminal', 'tool-web', 'tool-geocrm'],
     note: 'Collects prompt sections and model-facing tool schemas for each step.',
   },
   {

@@ -54,14 +54,15 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-Each registered tool is a thin HTTP proxy. `execute` resolves the origin and a live JWT (refreshing through `POST /auth/refresh` when `exp` is near), posts `{ arguments }` to `/ai/harness/tools/{name}`, and returns GeoCRM's result text. Entity enums stay open: GeoCRM refuses an entity the caller cannot read or write. Upload tools (`upload_file`, `prepare_upload`, `finalize_upload`, `delete_file`, `list_upload_kinds`) are not registered.
+Each registered tool is a thin HTTP proxy. `execute` resolves the origin and a live JWT (refreshing through `POST /auth/refresh` when `exp` is near), posts `{ arguments }` to `/ai/harness/tools/{name}`, and returns GeoCRM's result text. Entity enums stay open: GeoCRM refuses an entity the caller cannot read or write. Upload tools (`upload_file`, `prepare_upload`, `finalize_upload`, `delete_file`, `list_upload_kinds`) are not registered. `apply` also registers the `tool:geocrm` prompt section so the model calls `list_my_access` then `list_entities` before any CRM read or write. That section sits before `web_search`, so CRM questions do not go to the public web first.
 
 ### Source map
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | Plugin `apply`, connection resolution, token resolution |
+| [`src/index.ts`](src/index.ts) | Plugin `apply`, connection resolution, token resolution, prompt section |
 | [`src/catalog.ts`](src/catalog.ts) | Tool names, descriptions, and parameter schemas |
+| [`src/guidance.ts`](src/guidance.ts) | `tool:geocrm` cross-call ACL routing text |
 | [`src/http.ts`](src/http.ts) | Harness tool POST and error text |
 
 </details>
@@ -84,7 +85,7 @@ Each registered tool is a thin HTTP proxy. `execute` resolves the origin and a l
 
 #### What the model sees
 
-The model sees the generated [GeoCRM tool schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-geocrm): `list_my_access`, `list_entities`, `search_records`, `get_record`, `count_records`, `summarize_records`, `create_record`, `update_record`, and `delete_record`. Descriptions tell the model to call `list_my_access` then `list_entities` before reads or writes.
+The model sees the generated [GeoCRM tool schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-geocrm): `list_my_access`, `list_entities`, `search_records`, `get_record`, `count_records`, `summarize_records`, `create_record`, `update_record`, and `delete_record`. Descriptions and the `tool:geocrm` section tell the model to call `list_my_access` then `list_entities` before reads or writes, prefer `summarize_records` for period reports, and write only when `list_entities` lists the grant.
 
 #### Token effect
 
@@ -92,7 +93,7 @@ Each successful call returns GeoCRM's result text as one model-facing text block
 
 #### KV Cache effect
 
-Tool schemas are a stable prefix for the life of the mount. A changed origin or token does not change the schemas; only the next execute uses the new connection.
+Tool schemas and the `tool:geocrm` section are a stable prefix for the life of the mount. A changed origin or token does not change them; only the next execute uses the new connection.
 
 ## Known Limitations and Deferred Work
 

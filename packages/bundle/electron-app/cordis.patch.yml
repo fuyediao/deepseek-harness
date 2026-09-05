@@ -47,7 +47,7 @@
 - id: system-prompt
   config:
     persona: >-
-      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+      You are the GeoCRM Harness work agent powered by the {{model}} model. Your working directory is {{cwd}}. You still write and edit software when that is the job.
 
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the desktop values on one ephemeral in-memory index; a

@@ -595,7 +595,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
     pkg: '@deepseek-ai/dsh-tool-geocrm',
     dir: 'tool-geocrm',
     source: 'packages/llm/tool-geocrm/src/catalog.ts',
-    requires: ['ctx.tools', 'GEOCRM_HARNESS_TOKEN or the llm-geocrm settings section'],
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'GEOCRM_HARNESS_TOKEN or the llm-geocrm settings section'],
     writes: ['tool/call', 'tool/result'],
     async mount(ctx) {
       await ctx.plugin(ToolGeocrm)
