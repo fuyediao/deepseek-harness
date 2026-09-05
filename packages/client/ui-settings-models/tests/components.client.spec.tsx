@@ -259,7 +259,10 @@ function cardSeatCalls(
     ])
 }
 
-async function mountFace(scripted: ReturnType<typeof scriptedFace>) {
+async function mountFace(
+  scripted: ReturnType<typeof scriptedFace>,
+  options: { desktop?: boolean } = {},
+) {
   const { face, update, mutate, set, unset } = scripted
   const ctx = ctxWith(face)
   const mirror = new SettingsDescribeMirror(ctx)
@@ -272,6 +275,7 @@ async function mountFace(scripted: ReturnType<typeof scriptedFace>) {
     operations: operationsWith(face),
     schema: settingsSchema,
     t,
+    ...options.desktop === true ? { desktop: true } : {},
     renderSlot: renderSlot as unknown as ModelsSectionProps['renderSlot'],
   }
   const view = render(<ModelsSection {...injected} />)
@@ -311,6 +315,91 @@ describe('ModelsSection', () => {
     const uninjected = {} as ModelsSectionProps
     render(<ModelsSection {...uninjected} />)
     expect(document.body.textContent).toBe('')
+  })
+
+  it('uses catalog copy and hides add-provider on the desktop renderer', async () => {
+    await mountFace(scriptedFace(), { desktop: true })
+    expect(screen.getByText(en.desktopIntro)).toBeTruthy()
+    expect(screen.queryByText(en.intro)).toBeNull()
+    expect(screen.queryByText(en.add)).toBeNull()
+    expect(screen.queryByText(en.customAdd)).toBeNull()
+  })
+
+  it('opens the GeoCRM catalog on the desktop renderer', async () => {
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+      baseURL: Schema.string(),
+      models: Schema.array(Schema.object({
+        id: Schema.string().required(),
+        name: Schema.string(),
+      })),
+    })
+    const scripted = scriptedFace()
+    scripted.face.llm.listProviders.mockImplementation(() => Promise.resolve(remoteOk([
+      { id: 'geocrm', name: 'GeoCRM' },
+    ])))
+    scripted.face.llm.listConfigurableProviders.mockImplementation(() => Promise.resolve(remoteOk([
+      { provider: 'geocrm', displayName: 'GeoCRM', settingsNs: 'llm-geocrm', settingsPath: [] },
+    ])))
+    scripted.face.settings.describe.mockImplementation(() => Promise.resolve(remoteOk({
+      writable: true,
+      hasDocument: false,
+      namespaces: [{
+        ns: 'llm-geocrm',
+        schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+        value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
+        applies: 'live' as const,
+        secrets: [],
+        revision: 0,
+      }],
+    })))
+    scripted.face.credentials.describe.mockImplementation((refs: string[]) =>
+      Promise.resolve(remoteOk(
+        Object.fromEntries(refs.map(ref => [ref, {
+          configured: ref === 'GEOCRM_HARNESS_TOKEN',
+          writable: true,
+        }])),
+      )))
+    await mountFace(scripted, { desktop: true })
+    expect(screen.getByText(en.desktopIntro)).toBeTruthy()
+    expect(await screen.findByText(en.modelsSessionHint)).toBeTruthy()
+    expect(screen.getByLabelText(en.models)).toBeTruthy()
+    fireEvent.click(screen.getByText(en.cancel))
+    expect(screen.queryByText(en.modelsSessionHint)).toBeNull()
+  })
+
+  it('does not stack an auto-opened editor on a first-run GeoCRM setup card', async () => {
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+    })
+    const scripted = scriptedFace()
+    scripted.face.llm.listProviders.mockImplementation(() => Promise.resolve(remoteOk([
+      { id: 'geocrm', name: 'GeoCRM' },
+    ])))
+    scripted.face.llm.listConfigurableProviders.mockImplementation(() => Promise.resolve(remoteOk([
+      { provider: 'geocrm', displayName: 'GeoCRM', settingsNs: 'llm-geocrm', settingsPath: [] },
+    ])))
+    scripted.face.settings.describe.mockImplementation(() => Promise.resolve(remoteOk({
+      writable: true,
+      hasDocument: false,
+      namespaces: [{
+        ns: 'llm-geocrm',
+        schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+        value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
+        applies: 'live' as const,
+        secrets: [],
+        revision: 0,
+      }],
+    })))
+    scripted.face.credentials.describe.mockImplementation((refs: string[]) =>
+      Promise.resolve(remoteOk(
+        Object.fromEntries(refs.map(ref => [ref, { configured: false, writable: true }])),
+      )))
+    await mountFace(scripted, { desktop: true })
+    expect(screen.getByText(en.desktopIntro)).toBeTruthy()
+    expect(screen.queryByRole('button', {
+      name: providerCopy(en.editProvider, { provider: 'geocrm', displayName: 'GeoCRM' }),
+    })).toBeNull()
   })
 
   it('dispatches the provider-card seat per rendered row, keyed by the owning namespace', async () => {

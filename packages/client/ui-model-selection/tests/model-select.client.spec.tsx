@@ -215,3 +215,50 @@ describe('ModelSelect reasoning effort', () => {
     expect(load).not.toHaveBeenCalled()
   })
 })
+
+describe('ModelSelect GeoCRM vendor groups', () => {
+  it('groups composite ids by vendor and still selects the geocrm route', async () => {
+    const groups = [{
+      id: 'geocrm',
+      name: 'GeoCRM',
+      models: [
+        { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+        { id: 'gemini:gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
+        { id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+      ],
+    }]
+    const directory = createSnapshotStore<ModelDirectoryState>(state({
+      groups,
+      current: { provider: 'geocrm', model: 'deepseek:deepseek-v4-flash' },
+    }))
+    const select = vi.fn(async (selection: ModelSelection) => {
+      directory.set(state({ groups, current: selection }))
+      return true
+    })
+    render(<ModelSelect
+      locked={false}
+      available
+      directory={directory}
+      load={vi.fn()}
+      select={select}
+      t={t}
+    />)
+
+    const trigger = screen.getByRole('button', {
+      name: '选择模型，当前 DeepSeek \u00b7 DeepSeek V4 Flash',
+    })
+    expect(trigger.textContent).toContain('DeepSeek \u00b7 DeepSeek V4 Flash')
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
+    expect(screen.getByRole('group', { name: 'ChatGPT' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Gemini' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'DeepSeek' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /ChatGPT/ }))
+    await waitFor(() => {
+      expect(select).toHaveBeenCalledWith({
+        provider: 'geocrm',
+        model: 'chatgpt:gpt-5.6-sol',
+      })
+    })
+  })
+})

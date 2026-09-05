@@ -29,31 +29,28 @@ const GEOCRM_SPARK_HOLE = 'M 272 236 A 16 16 0 1 1 240 236 A 16 16 0 1 1 272 236
 /**
  * Render the GeoCRM map-pin mark at the sidebar's requested size.
  * @param props - Host-supplied mark presentation.
- * @returns the GeoCRM pin on a theme-aware tile (aria-hidden decorative brand art).
+ * @returns the transparent pin with no tile (aria-hidden decorative brand art).
  */
 export function GeoCrmBrandMark({ size }: SidebarBrandMarkOwnerProps) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox="0 0 512 512"
       className={css.mark}
       fill="none"
       aria-hidden="true"
     >
-      <rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="currentColor" />
-      <svg x="3.25" y="3.25" width="17.5" height="17.5" viewBox="0 0 512 512" fill="none">
-        <path
-          fill={GEOCRM_PIN_FILL}
-          fillRule="evenodd"
-          d={`${GEOCRM_PIN_OUTER} ${GEOCRM_PIN_HOLE}`}
-        />
-        <path
-          fill={GEOCRM_PIN_FILL}
-          fillRule="evenodd"
-          d={`${GEOCRM_SPARK_OUTER} ${GEOCRM_SPARK_HOLE}`}
-        />
-      </svg>
+      <path
+        fill={GEOCRM_PIN_FILL}
+        fillRule="evenodd"
+        d={`${GEOCRM_PIN_OUTER} ${GEOCRM_PIN_HOLE}`}
+      />
+      <path
+        fill={GEOCRM_PIN_FILL}
+        fillRule="evenodd"
+        d={`${GEOCRM_SPARK_OUTER} ${GEOCRM_SPARK_HOLE}`}
+      />
     </svg>
   )
 }

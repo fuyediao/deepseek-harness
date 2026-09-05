@@ -99,16 +99,17 @@ export function apply(ctx: ClientContext, config: SignInGateConfig = {}): void {
   // Registration-time text (the nav label thunk) and the inject faces share
   // one bound translate; copy freshness rides the locale revision.
   const t = ctx.locale.bind(NS) as ModelsSectionInjected['t']
+  // The scope's own memory mode is what keeps a remote browser process-local,
+  // so the store needs no isLoopback branch of its own.
+  const desktop = shouldOccupySignInGate(config)
   const injected = (): ModelsSectionInjected => ({
     controller,
     hooks: { snapshot: controller.store },
     operations,
     schema,
     t,
+    desktop,
   })
-  // The scope's own memory mode is what keeps a remote browser process-local,
-  // so the store needs no isLoopback branch of its own.
-  const desktop = shouldOccupySignInGate(config)
   const welcomeController = new WelcomeNoticeStore(ctx.settingsScope.bind({
     namespace: WELCOME_NOTICE_SETTINGS_NAMESPACE,
     decode: decodeWelcomeSection,

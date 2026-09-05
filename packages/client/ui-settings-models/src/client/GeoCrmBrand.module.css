@@ -1,7 +1,6 @@
 .mark {
   display: block;
   flex: none;
-  color: var(--dsw-alias-label-primary);
 }
 
 .name {

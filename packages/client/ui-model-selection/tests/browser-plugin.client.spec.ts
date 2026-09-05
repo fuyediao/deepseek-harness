@@ -55,9 +55,13 @@ const GROUPS = [{
 }]
 
 /** Boot the plugin over fake faces + a stateful fake host (current moves on selectModel). */
-async function bench() {
+async function bench(overrides: {
+  groups?: typeof GROUPS
+  defaultSelection?: ModelSelection
+} = {}) {
   const ctx = new Context()
-  let defaultSelection: ModelSelection = { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
+  let defaultSelection: ModelSelection = overrides.defaultSelection
+    ?? { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
   let selected = defaultSelection
   const calls = { models: 0, select: 0 }
   const projections = new Map<SessionId, SnapshotStore<ModelSelectionProjection | undefined>>()
@@ -71,8 +75,8 @@ async function bench() {
         ok: true as const,
         value: {
           default: defaultSelection,
-          routableProviders: routable ? ['deepseek-official'] : [],
-          groups: GROUPS,
+          routableProviders: routable ? [defaultSelection.provider] : [],
+          groups: overrides.groups ?? GROUPS,
           failures: [],
         },
       })
@@ -186,6 +190,27 @@ describe('ui-model-selection dual entry', () => {
     expect(options.map((o: SelectOption) => o.label)).toEqual(['DeepSeek-V4-Flash', 'DeepSeek-V4-Pro'])
     expect(options[0]).toMatchObject({ active: true, detail: 'DeepSeek' })
     expect(options[1]?.active).toBeUndefined()
+  })
+
+  it('popup options prefix GeoCRM composite ids with the vendor', async () => {
+    const b = await bench({
+      defaultSelection: { provider: 'geocrm', model: 'chatgpt:gpt-5.6-sol' },
+      groups: [{
+        id: 'geocrm',
+        name: 'GeoCRM',
+        models: [
+          { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol', description: 'Flagship' },
+          { id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+        ],
+      }],
+    })
+    b.mint('s1')
+    const options = await b.contribution().ui.options(projection('s1'), new AbortController().signal)
+    expect(options.map((o: SelectOption) => [o.label, o.detail])).toEqual([
+      ['ChatGPT \u00b7 GPT-5.6 Sol', 'ChatGPT \u00b7 Flagship'],
+      ['DeepSeek \u00b7 DeepSeek V4 Flash', 'DeepSeek'],
+    ])
+    expect(options[0]).toMatchObject({ active: true })
   })
 
   it('a seat selection is the current the popup marks active next — one shared state', async () => {

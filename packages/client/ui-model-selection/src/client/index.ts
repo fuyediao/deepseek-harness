@@ -23,6 +23,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelDirectoryState } from './directory.ts'
+import { geocrmCombinedLabel, presentGeocrmCatalog } from './geocrm-catalog.ts'
 import { ModelDirectoryResolver } from './service.ts'
 import type { ModelSelectInjected } from './slots.ts'
 import { ModelSelect } from './ModelSelect.tsx'
@@ -49,14 +50,14 @@ function rowId(providerId: string, modelId: string): string {
 /** Flatten the directory into popup rows; failure rows are listed for visibility but never selectable. */
 function optionsOf(directory: ModelDirectoryState, t: TranslateNS<'model'>): SelectOption[] {
   const rows: SelectOption[] = []
-  for (const group of directory.groups) {
+  for (const group of presentGeocrmCatalog(directory.groups)) {
     for (const model of group.models) {
       rows.push({
-        id: rowId(group.id, model.id),
-        label: model.name,
+        id: rowId(group.routeId, model.id),
+        label: geocrmCombinedLabel(model.id, model.name, group.routeId),
         detail: model.description !== undefined ? `${group.name} · ${model.description}` : group.name,
         ...(directory.current !== null
-          && directory.current.provider === group.id
+          && directory.current.provider === group.routeId
           && directory.current.model === model.id
           ? { active: true } : {}),
       })
