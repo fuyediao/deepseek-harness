@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FC08D" />
+      <stop offset="100%" stop-color="#3FCF8E" />
+    </linearGradient>
+    <linearGradient id="aiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#646CFF" />
+      <stop offset="100%" stop-color="#61DAFB" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0A0A0A" />
+  <path
+    d="M 256 80 C 160 80 82 158 82 254 C 82 371 256 460 256 460 C 256 460 430 371 430 254 C 430 158 352 80 256 80 Z"
+    fill="url(#pinGrad)"
+  />
+  <circle cx="256" cy="236" r="92" fill="#0A0A0A" />
+  <path
+    d="M 256 156 C 266 206 206 226 336 236 C 206 246 266 266 256 316 C 246 266 306 246 176 236 C 306 226 246 206 256 156 Z"
+    fill="url(#aiGrad)"
+  />
+  <circle cx="256" cy="236" r="16" fill="#FFFFFF" />
+  <circle cx="150" cy="140" r="10" fill="#4FC08D" opacity="0.6" />
+  <circle cx="362" cy="140" r="10" fill="#61DAFB" opacity="0.6" />
+</svg>

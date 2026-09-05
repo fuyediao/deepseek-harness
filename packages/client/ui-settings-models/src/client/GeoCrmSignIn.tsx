@@ -191,22 +191,6 @@ export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
   return (
     <div className={formClass}>
       {props.hideHint === true ? null : <p className={styles['advancedHint']}>{t('signInHint')}</p>}
-      {showGoogle
-        ? (
-          <>
-            <button
-              type="button"
-              className={cover.google}
-              disabled={disabled}
-              onClick={() => { void signInGoogle() }}
-            >
-              <GoogleMark />
-              {googleBusy ? t('signingInWithGoogle') : t('signInWithGoogle')}
-            </button>
-            <div className={cover.divider}>{t('signInDivider')}</div>
-          </>
-        )
-        : null}
       <div className={modeRowClass} role="group" aria-label={t('loginMode')}>
         <button
           type="button"
@@ -293,6 +277,22 @@ export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
           )
           : null}
       </div>
+      {showGoogle
+        ? (
+          <>
+            <div className={cover.divider}>{t('signInDivider')}</div>
+            <button
+              type="button"
+              className={cover.google}
+              disabled={disabled}
+              onClick={() => { void signInGoogle() }}
+            >
+              <GoogleMark />
+              {googleBusy ? t('signingInWithGoogle') : t('signInWithGoogle')}
+            </button>
+          </>
+        )
+        : null}
       {sessionEmail === undefined
         ? null
         : <p className={styles['savedNotice']}>{`${t('accountSignedIn')} ${sessionEmail}`}</p>}

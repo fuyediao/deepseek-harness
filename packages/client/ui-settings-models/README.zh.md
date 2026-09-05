@@ -45,7 +45,7 @@ kind: "package-reference"
 
 ### 桌面登录
 
-在 Electron 渲染进程中，本包还会占据 `shell.gate` 与侧栏品牌席位：窗口停留在居中的 GeoCRM Harness 登录卡片，直到存入会话令牌，标题栏和侧栏显示 GeoCRM Harness。卡片提供「使用 Google 登录」（系统浏览器，回环返回）以及工号或邮箱。`dsh web` 把这些席位留给官方品牌，并隐藏 Google 按钮。
+在 Electron 渲染进程中，本包还会占据 `shell.gate` 与侧栏品牌席位：窗口停留在居中的 GeoCRM Harness 登录卡片，直到存入会话令牌，标题栏和侧栏显示 GeoCRM 地图针与 GeoCRM Harness。卡片提供「使用 Google 登录」（系统浏览器，回环返回）以及工号或邮箱。`dsh web` 把这些席位留给官方品牌，并隐藏 Google 按钮。
 
 ### 扩展插槽
 

@@ -15,6 +15,8 @@ describe('GeoCrmBrand', () => {
     expect(svg?.getAttribute('width')).toBe('24')
     expect(svg?.getAttribute('height')).toBe('24')
     expect(svg?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.innerHTML).toContain('M 256 80')
+    expect(container.innerHTML).not.toContain('M8 8.25h5.1')
   })
 
   it('renders the localized product name', () => {

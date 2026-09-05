@@ -4,6 +4,8 @@
  * @module @deepseek-ai/dsh-electron-shell/window-chrome
  */
 
+import { fileURLToPath } from 'node:url'
+
 /** BrowserWindow size and menu-bar visibility used when constructing the window. */
 export const DESKTOP_WINDOW_CHROME = {
   width: 1280,
@@ -14,8 +16,26 @@ export const DESKTOP_WINDOW_CHROME = {
 /** Native window and taskbar name for this desktop product. */
 export const DESKTOP_PRODUCT_NAME = 'GeoCRM Harness'
 
-/** Product suffix the shared official frontend writes into `document.title`. */
+/**
+ * Absolute path of the GeoCRM product icon used as the native window icon.
+ * Bundled `lib/main.js` resolves `../icons` next to `lib/`.
+ * @returns the PNG path passed to `BrowserWindow`.
+ */
+export function desktopWindowIconPath(): string {
+  return fileURLToPath(new URL('../icons/icon.png', import.meta.url))
+}
+
+/** Official product suffix the shared frontend writes into `document.title`. */
 export const UPSTREAM_WINDOW_TITLE = 'DeepSeek Harness'
+
+/**
+ * Other product suffixes a local or dirty frontend build writes into
+ * `document.title` when `DSH_CLIENT_TITLE` is unset.
+ */
+export const UPSTREAM_WINDOW_TITLE_ALIASES = [
+  'DSH Local Build',
+  'DSH 本地构建',
+] as const
 
 /** Methods {@link applyDesktopWindowTitle} needs from a constructed BrowserWindow. */
 export interface DesktopTitleHost {
@@ -30,12 +50,15 @@ export interface DesktopTitleHost {
 
 /**
  * Rewrite a renderer document title so the native window shows GeoCRM Harness.
- * Session titles stay; only the shipped frontend product suffix changes.
+ * Session titles stay; official and local-build product suffixes change.
  * @param title - `document.title` from the renderer.
  * @returns the native window title.
  */
 export function desktopWindowTitle(title: string): string {
-  const rewritten = title.replaceAll(UPSTREAM_WINDOW_TITLE, DESKTOP_PRODUCT_NAME)
+  let rewritten = title.replaceAll(UPSTREAM_WINDOW_TITLE, DESKTOP_PRODUCT_NAME)
+  for (const alias of UPSTREAM_WINDOW_TITLE_ALIASES) {
+    rewritten = rewritten.replaceAll(alias, DESKTOP_PRODUCT_NAME)
+  }
   return rewritten.trim() === '' ? DESKTOP_PRODUCT_NAME : rewritten
 }
 

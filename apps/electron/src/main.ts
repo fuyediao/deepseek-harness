@@ -44,6 +44,7 @@ import {
   applyDesktopWindowTitle,
   DESKTOP_PRODUCT_NAME,
   DESKTOP_WINDOW_CHROME,
+  desktopWindowIconPath,
   hideDesktopMenuBar,
 } from './window-chrome.ts'
 import {
@@ -253,6 +254,7 @@ async function createWindow(connection: HostConnection): Promise<void> {
   const window = new BrowserWindow({
     ...DESKTOP_WINDOW_CHROME,
     title: DESKTOP_PRODUCT_NAME,
+    icon: desktopWindowIconPath(),
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,

@@ -179,6 +179,17 @@ describe('GeoCrmSignIn', () => {
     expect(screen.queryByText(en.signInDivider)).toBeNull()
   })
 
+  it('places Google sign-in below the password form', () => {
+    vi.stubGlobal('__dshElectronBridge__', {
+      signInWithGoogle: () => Promise.resolve({ ok: false, error: 'x' }),
+    })
+    const { container } = mount()
+    const text = container.textContent ?? ''
+    expect(text.indexOf(en.employeeId)).toBeGreaterThan(-1)
+    expect(text.indexOf(en.signIn)).toBeLessThan(text.indexOf(en.signInDivider))
+    expect(text.indexOf(en.signInDivider)).toBeLessThan(text.indexOf(en.signInWithGoogle))
+  })
+
   it('stores a Google session from the desktop bridge', async () => {
     const payload = btoa(JSON.stringify({ email: 'ada@example.com' }))
       .replace(/=+$/u, '')

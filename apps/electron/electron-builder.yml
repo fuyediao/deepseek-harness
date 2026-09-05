@@ -9,10 +9,12 @@ npmRebuild: false
 directories:
   output: ../../dist-electron
   buildResources: packaging
+icon: icons/icon.png
 files:
   - lib/main.js
   - lib/preload.cjs
   - package.json
+  - icons/icon.png
 extraResources:
   - from: packaging/host
     to: host

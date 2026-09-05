@@ -20,7 +20,7 @@ Picker ids are composite `provider:model` values because GeoCRM catalog ids can 
 
 The Electron window occupies `shell.gate` before the conversation shell is usable. The browser Loader creates client entries without yml config, so the cover keys off the `dsh-app:` renderer protocol (tests pass `requireSignIn`). A stored `GEOCRM_HARNESS_TOKEN` skips the panel. A fresh sign-in without `desktop_agent` clears the tokens and stays on the panel. Sign-out from the Models card returns to the panel. `dsh web` leaves `shell.gate` empty. `shell.gate` and `shell.overlay` span the full AppFrame grid so the cover can center a product card over the window; without that span an absolutely positioned occupant only fills the sidebar column.
 
-The desktop product name is GeoCRM Harness: native window title, NSIS `productName`, sidebar brand occupants (priority `-10`, so they shadow the official DeepSeek mark), sign-in cover, desktop welcome notice, `dsh electron` help text, and the `app:electron-surface` prompt. Package names, the `dsh` CLI verb, and `dsh web` keep DeepSeek Harness.
+The desktop product name is GeoCRM Harness: native window title, NSIS `productName`, sidebar brand occupants (priority `-10`, so they shadow the official DeepSeek mark), the GeoCRM map-pin mark, sign-in cover, desktop welcome notice, `dsh electron` help text, and the `app:electron-surface` prompt. Package names, the `dsh` CLI verb, and `dsh web` keep DeepSeek Harness.
 
 `@deepseek-ai/dsh-tool-geocrm` registers first-party GeoCRM Harness tools on the electron host plane (`list_my_access`, `list_entities`, search/count/summarize, create/update/delete). Each call posts to `/ai/harness/tools/{name}` with the stored JWT. Upload tools stay in GeoCRM. `dsh web` and headless do not mount this row.
 
@@ -28,7 +28,7 @@ The desktop product name is GeoCRM Harness: native window title, NSIS `productNa
 
 - `packages/llm/llm-geocrm/tests` cover catalog ids, HTTP mapping, Responses translation, adapter fetch, plugin `apply`, and session refresh.
 - `packages/client/ui-settings-models/tests` cover the GeoCRM placeholders, sign-in HTTP, Google desktop invoke, refresh-token persist, `desktop_agent` probe, the `shell.gate` cover, and desktop brand occupancy.
-- `apps/electron/tests/window-chrome.spec.ts` rewrites the official frontend title suffix to GeoCRM Harness. `apps/electron/tests/google-sign-in.spec.ts` covers the loopback authorize URL, CSRF state, and token POST.
+- `apps/electron/tests/window-chrome.spec.ts` rewrites the official frontend title suffix and the local-build fallbacks (`DSH Local Build`, `DSH 本地构建`) to GeoCRM Harness. `apps/electron/tests/google-sign-in.spec.ts` covers the loopback authorize URL, CSRF state, and token POST.
 - `packages/llm/tool-geocrm/tests` cover connection resolution, token resolution, and harness tool POST.
 
 ## Alternatives considered

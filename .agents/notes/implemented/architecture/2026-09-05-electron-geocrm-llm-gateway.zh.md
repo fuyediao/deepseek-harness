@@ -20,7 +20,7 @@ Status: implemented
 
 Electron 窗口在会话界面可用之前占据 `shell.gate`。浏览器 Loader 创建 client 条目时不转发 yml 配置，因此该覆盖层依据 `dsh-app:` 渲染协议判断（测试传入 `requireSignIn`）。已存储的 `GEOCRM_HARNESS_TOKEN` 会跳过该页。新登录若没有 `desktop_agent` 会清除令牌并留在该页。从模型卡片退出登录会回到该页。`dsh web` 让 `shell.gate` 保持空。`shell.gate` 与 `shell.overlay` 横跨整个 AppFrame 网格，因此登录卡片可以在窗口正中铺开；若不横跨，绝对定位的占位只会填满侧栏那一列。
 
-桌面产品名是 GeoCRM Harness：原生窗口标题、NSIS `productName`、侧栏品牌占位（优先级 `-10`，从而盖过官方 DeepSeek 标记）、登录页、桌面欢迎声明、`dsh electron` 帮助文本，以及 `app:electron-surface` 提示。包名、`dsh` CLI 动词和 `dsh web` 仍使用 DeepSeek Harness。
+桌面产品名是 GeoCRM Harness：原生窗口标题、NSIS `productName`、侧栏品牌占位（优先级 `-10`，从而盖过官方 DeepSeek 标记）、GeoCRM 地图针标记、登录页、桌面欢迎声明、`dsh electron` 帮助文本，以及 `app:electron-surface` 提示。包名、`dsh` CLI 动词和 `dsh web` 仍使用 DeepSeek Harness。
 
 `@deepseek-ai/dsh-tool-geocrm` 在 electron 宿主平面注册 GeoCRM Harness 的一等工具（`list_my_access`、`list_entities`、检索/计数/汇总、创建/更新/删除）。每次调用都用已存储的 JWT POST 到 `/ai/harness/tools/{name}`。上传工具仍留在 GeoCRM。`dsh web` 与 headless 不挂载这一行。
 
@@ -28,7 +28,7 @@ Electron 窗口在会话界面可用之前占据 `shell.gate`。浏览器 Loader
 
 - `packages/llm/llm-geocrm/tests` 覆盖目录 id、HTTP 映射、Responses 翻译、适配器 fetch、插件 `apply` 以及会话刷新。
 - `packages/client/ui-settings-models/tests` 覆盖 GeoCRM 占位符、登录 HTTP、Google 桌面调用、refresh 令牌持久化、`desktop_agent` 探测、`shell.gate` 覆盖层以及桌面品牌占位。
-- `apps/electron/tests/window-chrome.spec.ts` 会把官方前端标题后缀改写为 GeoCRM Harness。`apps/electron/tests/google-sign-in.spec.ts` 覆盖回环授权 URL、CSRF state 与令牌 POST。
+- `apps/electron/tests/window-chrome.spec.ts` 会把官方前端标题后缀以及本地构建回退（`DSH Local Build`、`DSH 本地构建`）改写为 GeoCRM Harness。`apps/electron/tests/google-sign-in.spec.ts` 覆盖回环授权 URL、CSRF state 与令牌 POST。
 - `packages/llm/tool-geocrm/tests` 覆盖连接解析、令牌解析与 harness 工具 POST。
 
 ## Alternatives considered
