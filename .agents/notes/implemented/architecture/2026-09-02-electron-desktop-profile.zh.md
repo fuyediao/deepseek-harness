@@ -65,3 +65,4 @@ Electron 主进程连接该 socket，注册一个特权 `dsh-app://` 自定义�
 - 从 Electron 父进程（Cursor、VS Code）拉起窗口时，必须去掉 `ELECTRON_RUN_AS_NODE`、`ELECTRON_NO_ASAR` 和 `CHROME_CRASHPAD_PIPE_NAME`。否则 `electron.exe` 会按 Node 运行，或卡在父进程的 crashpad 管道上，于是 Host 只打印 `ipc ready` 却不出现窗口。
 - `dsh-electron-app` 必须声明 `@deepseek-ai/dsh-web-frontend`，否则在 pnpm 隔离下 `require.resolve` 看不到构建好的 dist。缺这个依赖时 Host 会打出 `ipc ready`，随后 fiber 静默失败，看起来像卡住。
 - 桌面 patch 与 `connection` 一起挂载 `file-upload`。`session-controller` 注入 `fileUploads`；缺少该行时 Host 会打印 `ipc ready`，然后以 `waiting for service: fileUploads` 退出。
+- 桌面 patch 固定挂载 `@deepseek-ai/dsh-host-directory-picker-native`，因为 `directory-picker-auto` 会注入 `webServer`。该宿主行并不占据 `conversation.hero.workspace.directoryFlow`。配套的客户端表面 `@deepseek-ai/dsh-client-ui-directory-picker-native` 是名册中的一行，这样在列表为空时「选择工作区」才能打开操作系统文件夹对话框。

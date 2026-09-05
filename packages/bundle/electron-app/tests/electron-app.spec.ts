@@ -245,4 +245,12 @@ describe('electron-app runtime glue', () => {
     expect(patch).toContain("name: '@deepseek-ai/dsh-client-file-upload'")
     expect(patch).toContain('id: session-controller')
   })
+
+  it('mounts the native directory-flow surface next to the native host picker', () => {
+    const patch = readFileSync(fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8')
+    expect(patch).toContain('id: directory-picker')
+    expect(patch).toContain("name: '@deepseek-ai/dsh-host-directory-picker-native'")
+    expect(patch).toContain('id: ui-directory-picker-native')
+    expect(patch).toContain("name: '@deepseek-ai/dsh-client-ui-directory-picker-native'")
+  })
 })

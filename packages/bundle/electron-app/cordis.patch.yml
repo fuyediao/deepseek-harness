@@ -244,6 +244,13 @@
     - id: ui-workspace
       name: '@deepseek-ai/dsh-client-ui-workspace'
 
+    # The host `directory-picker` row above is native-only (this surface has
+    # no `webServer`, so `directory-picker-auto` cannot mount). The native
+    # Host package does not occupy ui-workspace's directory-flow hole; without
+    # this client surface the Choose workspace chip opens an empty menu.
+    - id: ui-directory-picker-native
+      name: '@deepseek-ai/dsh-client-ui-directory-picker-native'
+
     # Input triggers: the '/' | '@' pipeline (ui-input-trigger), the command surface over
     # it (ui-commands), and the reference sources (ui-skill / ui-reference).
     - id: ui-input-trigger

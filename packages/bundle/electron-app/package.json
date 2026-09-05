@@ -41,6 +41,7 @@
   "dependencies": {
     "@deepseek-ai/dsh-app-boot": "workspace:^",
     "@deepseek-ai/dsh-client-file-upload": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-directory-picker-native": "workspace:^",
     "@deepseek-ai/dsh-cmdline": "workspace:^",
     "@deepseek-ai/dsh-electron-ipc": "workspace:^",
     "@deepseek-ai/dsh-electron-shell": "workspace:^",

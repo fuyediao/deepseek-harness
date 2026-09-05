@@ -33,7 +33,7 @@ dsh electron
 dsh electron --no-window
 ```
 
-`dsh electron` 是 `--profile electron` 的专用别名，与 `dsh web` 对应。启动后会打开标题为 GeoCRM Harness 的 Electron 窗口，先显示登录页，再进入会话视图。`--no-window` 只启动 IPC 监听而不启动 Electron——适合无显示环境下的无密钥组合烟雾测试；该模式下没有任何客户端连接 socket，因此模型面不可达。
+`dsh electron` 是 `--profile electron` 的专用别名，与 `dsh web` 对应。启动后会打开标题为 GeoCRM Harness 的 Electron 窗口，先显示登录页，再进入会话视图。还没有保存的工作区时，**选择工作区**会打开操作系统文件夹对话框（与 Host 使用的原生选择器相同）。`--no-window` 只启动 IPC 监听而不启动 Electron——适合无显示环境下的无密钥组合烟雾测试；该模式下没有任何客户端连接 socket，因此模型面不可达。
 
 `pnpm run dist:electron` 会在 `dist-electron/` 下写出一份未签名的 win-x64 NSIS 安装程序。该 exe 就是 Electron 壳：它会启动捆绑的 Node `dsh --profile electron --no-window` 配置树并以窗口身份连接，因此 Host 不会再拉起第二个 Electron 进程。
 
