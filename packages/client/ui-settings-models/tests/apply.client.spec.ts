@@ -13,7 +13,7 @@ import {
 import { ModelsSection } from '../src/client/ModelsSection.tsx'
 import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
 import { GeoCrmGate } from '../src/client/GeoCrmGate.tsx'
-import { GeoCrmBrandMark, GeoCrmBrandName } from '../src/client/GeoCrmBrand.tsx'
+import { GeoCrmBrandMark, GeoCrmBrandName, GeoCrmHeroMark, GeoCrmHeroWordmark } from '../src/client/GeoCrmBrand.tsx'
 import { apply as hostApply } from '../src/index.ts'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
@@ -59,6 +59,8 @@ function declare(slots: SlotRegistry): () => void {
         'shell.gate': { kind: 'single', scope: 'root' },
         'sidebar.brand.mark': { kind: 'single', scope: 'root' },
         'sidebar.brand.name': { kind: 'single', scope: 'root' },
+        'conversation.hero.brand.mark': { kind: 'single', scope: 'root' },
+        'conversation.hero.wordmark': { kind: 'single', scope: 'root' },
       },
     } as never,
     () => null,
@@ -115,6 +117,8 @@ describe('ui-settings-models apply', () => {
     expect(after.slots.entries('shell.gate')).toHaveLength(0)
     expect(after.slots.entries('sidebar.brand.mark')).toHaveLength(0)
     expect(after.slots.entries('sidebar.brand.name')).toHaveLength(0)
+    expect(after.slots.entries('conversation.hero.brand.mark')).toHaveLength(0)
+    expect(after.slots.entries('conversation.hero.wordmark')).toHaveLength(0)
   })
 
   it('occupies shell.gate only when the desktop cover is required', async () => {
@@ -124,6 +128,8 @@ describe('ui-settings-models apply', () => {
     expect(off.slots.entries('shell.gate')).toHaveLength(0)
     expect(off.slots.entries('sidebar.brand.mark')).toHaveLength(0)
     expect(off.slots.entries('sidebar.brand.name')).toHaveLength(0)
+    expect(off.slots.entries('conversation.hero.brand.mark')).toHaveLength(0)
+    expect(off.slots.entries('conversation.hero.wordmark')).toHaveLength(0)
     const offWelcome = (
       off.slots.entries('settings.onboarding')
         .find(candidate => candidate.options.id === 'welcome-notice')!
@@ -145,6 +151,13 @@ describe('ui-settings-models apply', () => {
       brandName.inject as unknown as () => import('../src/client/GeoCrmBrand.tsx').GeoCrmBrandNameInjected
     )()
     expect(brandInjected.t('brandName')).toBe('GeoCRM Harness')
+    expect(on.slots.entries('conversation.hero.brand.mark')[0]!.component).toBe(GeoCrmHeroMark)
+    const heroName = on.slots.entries('conversation.hero.wordmark')[0]!
+    expect(heroName.component).toBe(GeoCrmHeroWordmark)
+    const heroInjected = (
+      heroName.inject as unknown as () => import('../src/client/GeoCrmBrand.tsx').GeoCrmBrandNameInjected
+    )()
+    expect(heroInjected.t('brandName')).toBe('GeoCRM Harness')
     const welcome = (
       on.slots.entries('settings.onboarding')
         .find(candidate => candidate.options.id === 'welcome-notice')!
@@ -169,6 +182,8 @@ describe('ui-settings-models apply', () => {
     expect(on.slots.entries('shell.gate')).toHaveLength(0)
     expect(on.slots.entries('sidebar.brand.mark')).toHaveLength(0)
     expect(on.slots.entries('sidebar.brand.name')).toHaveLength(0)
+    expect(on.slots.entries('conversation.hero.brand.mark')).toHaveLength(0)
+    expect(on.slots.entries('conversation.hero.wordmark')).toHaveLength(0)
   })
 
   it('the label thunk follows the active locale without re-registration', async () => {

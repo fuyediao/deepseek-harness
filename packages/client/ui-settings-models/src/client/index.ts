@@ -13,6 +13,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the sidebar brand SlotMap merge.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+// Type-only: pulls the conversation hero SlotMap merge.
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -25,7 +27,7 @@ import { WelcomeNotice } from './WelcomeNotice.tsx'
 import type { WelcomeNoticeInjected } from './WelcomeNotice.tsx'
 import { GeoCrmGate } from './GeoCrmGate.tsx'
 import type { GeoCrmGateInjected } from './GeoCrmGate.tsx'
-import { GeoCrmBrandMark, GeoCrmBrandName } from './GeoCrmBrand.tsx'
+import { GeoCrmBrandMark, GeoCrmBrandName, GeoCrmHeroMark, GeoCrmHeroWordmark } from './GeoCrmBrand.tsx'
 import type { GeoCrmBrandNameInjected } from './GeoCrmBrand.tsx'
 import {
   createSignInGate, DESKTOP_BRAND_PRIORITY, shouldOccupySignInGate, type SignInGateConfig,
@@ -80,8 +82,9 @@ export const inject = [
  * Register the Models section once the `settings.section` declaration is on
  * the ledger, wire its store to the connection, and keep it fresh on every
  * pushed invalidation (settings, credentials, or provider topology). The
- * desktop renderer also occupies `shell.gate` and the sidebar brand seats
- * and shows the GeoCRM product name.
+ * desktop renderer also occupies `shell.gate`, the sidebar brand seats,
+ * and the blank-session hero mark and wordmark, and shows the GeoCRM
+ * product name.
  * @param ctx - client root context.
  * @param config - optional test override that forces the desktop cover.
  */
@@ -165,6 +168,15 @@ export function apply(ctx: ClientContext, config: SignInGateConfig = {}): void {
     priority: DESKTOP_BRAND_PRIORITY,
     inject: (): GeoCrmBrandNameInjected => ({ t }),
   }, GeoCrmBrandName))
+  ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
+    name: 'conversation.hero.brand.mark',
+    priority: DESKTOP_BRAND_PRIORITY,
+  }, GeoCrmHeroMark))
+  ctx.slots.inject('conversation.hero.wordmark', () => ctx.slots.register({
+    name: 'conversation.hero.wordmark',
+    priority: DESKTOP_BRAND_PRIORITY,
+    inject: (): GeoCrmBrandNameInjected => ({ t }),
+  }, GeoCrmHeroWordmark))
 
   const gate = createSignInGate(ctx.settingsScope.describe(), operations)
   void gate.refresh()

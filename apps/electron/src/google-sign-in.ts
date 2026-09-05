@@ -129,8 +129,8 @@ export function callbackLandingHtml(state: string): string {
  * @param originRaw - GeoCRM API origin from the renderer.
  * @param deps - browser open and optional timeout.
  * @returns tokens or a stable error code (`invalid_origin`, `cancelled`,
- *   `unavailable`, `missing_token`, `invalid_state`). `in_progress` is owned
- *   by the IPC wrapper.
+ *   `unavailable` when the loopback cannot bind, `missing_token`,
+ *   `invalid_state`). `in_progress` is owned by the IPC wrapper.
  */
 export async function runGoogleSignIn(
   originRaw: unknown,
@@ -155,16 +155,23 @@ export async function runGoogleSignIn(
     }
   })
 
+  // Bind the port once. Reading `server.address()` on each request throws
+  // `unavailable` after `close()` starts, which is an uncaught main-process
+  // exception (the browser still GETs `/` and POSTs `/complete`).
+  let port = 0
   const server = createServer((request, response) => {
-    handleLoopbackRequest(request, response, {
-      state,
-      port: loopbackPort(server),
-      complete: finish,
-    })
+    try {
+      handleLoopbackRequest(request, response, {
+        state,
+        port,
+        complete: finish,
+      })
+    } catch {
+      writeErrorResponse(response)
+    }
   })
 
   try {
-    let port: number
     try {
       port = await listenLoopback(server)
     } catch {
@@ -174,7 +181,8 @@ export async function runGoogleSignIn(
     try {
       await deps.openExternal(googleAuthorizeUrl(origin, next))
     } catch {
-      finish({ ok: false, error: 'unavailable' })
+      // The OS may have opened the browser anyway; keep the loopback until
+      // tokens arrive or the timeout fires.
     }
     const timer = setTimeout(() => {
       finish({ ok: false, error: 'cancelled' })
@@ -217,6 +225,20 @@ function loopbackPort(server: Server): number {
     throw new Error('unavailable')
   }
   return address.port
+}
+
+/**
+ * Close a loopback response after an unexpected handler failure.
+ * @param response - the in-flight ServerResponse.
+ */
+function writeErrorResponse(response: ServerResponse): void {
+  if (response.writableEnded) return
+  try {
+    if (!response.headersSent) response.writeHead(500)
+    response.end()
+  } catch {
+    // The socket is already gone; nothing else can write this response.
+  }
 }
 
 async function closeServer(server: Server): Promise<void> {

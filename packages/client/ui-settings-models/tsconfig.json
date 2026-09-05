@@ -33,6 +33,9 @@
       "path": "../ui-sidebar"
     },
     {
+      "path": "../ui-conversation"
+    },
+    {
       "path": "../locale"
     },
     {

@@ -179,11 +179,41 @@ describe('runGoogleSignIn', () => {
     expect(opened).toEqual([])
   })
 
-  it('returns unavailable when the system browser cannot open', async () => {
-    await expect(runGoogleSignIn('http://127.0.0.1:3001', {
-      openExternal: async () => { throw new Error('blocked') },
+  it('still accepts tokens when opening the system browser throws', async () => {
+    const opened: string[] = []
+    const pending = runGoogleSignIn('http://127.0.0.1:3001', {
+      openExternal: async (url) => {
+        opened.push(url)
+        throw new Error('blocked')
+      },
       timeoutMs: 5_000,
-    })).resolves.toEqual({ ok: false, error: 'unavailable' })
+    })
+    const authorize = await waitForOpened(opened)
+    const landing = new URL(new URL(authorize).searchParams.get('next') as string)
+    const html = await (await fetch(landing)).text()
+    expect(html).toContain('Returning to GeoCRM Harness')
+    await fetch(new URL('/complete', landing), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        state: landing.searchParams.get('state'),
+        access_token: 'jwt',
+        refresh_token: 'refresh',
+      }),
+    })
+    await expect(pending).resolves.toEqual({
+      ok: true,
+      accessToken: 'jwt',
+      refreshToken: 'refresh',
+    })
+  })
+
+  it('does not throw after the loopback closes behind a late request', async () => {
+    const { outcome, landing } = await completeGoogleSignIn('http://127.0.0.1:3001', {
+      access_token: 'jwt',
+    })
+    expect(outcome).toEqual({ ok: true, accessToken: 'jwt' })
+    await expect(fetch(landing)).rejects.toThrow()
   })
 
   it('returns cancelled when the browser never comes back', async () => {

@@ -65,7 +65,7 @@ export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }
 export interface HeroShellProps {
   /** The owner's locale seat, passed down as a plain prop. */
   t: HeroTranslate
-  /** Authorized renderer for the hero brand-mark slot. */
+  /** Authorized renderer for the hero brand-mark and wordmark slots. */
   renderSlot: ConversationSlotProps['renderSlot']
   /** Overlay content after the stack (modals). */
   children?: ReactNode
@@ -149,10 +149,14 @@ export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
               fallback: <HeroFish hovering={hovering} />,
             })}
           </span>
-          <span className={css.headlineText}>
-            {t('hero.headline')}
-          </span>
-          <span className={css.previewBadge}>{t('hero.preview')}</span>
+          {renderSlot('conversation.hero.wordmark', { className: css.headlineText }, {
+            fallback: (
+              <>
+                <span className={css.headlineText}>{t('hero.headline')}</span>
+                <span className={css.previewBadge}>{t('hero.preview')}</span>
+              </>
+            ),
+          })}
         </div>
         <div className={css.body}>
           {/* The composer remains mounted outside this component. */}

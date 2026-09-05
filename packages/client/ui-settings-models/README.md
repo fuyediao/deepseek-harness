@@ -45,7 +45,7 @@ The versioned notice is the only `settings.onboarding` step this package registe
 
 ### Desktop sign-in
 
-On the Electron renderer this package also occupies `shell.gate` and the sidebar brand seats: the window stays on a centered GeoCRM Harness sign-in card until a session token is stored, and the title bar and sidebar show the GeoCRM pin and GeoCRM Harness. The card offers Continue with Google (system browser, loopback return) plus employee ID or email. `dsh web` leaves those seats to the official brand and hides the Google button.
+On the Electron renderer this package also occupies `shell.gate`, the sidebar brand seats, and the blank-session hero mark and wordmark: the window stays on a centered GeoCRM Harness sign-in card until a session token is stored, and the title bar, sidebar, and new-session hero show the GeoCRM pin and GeoCRM Harness. The hero mark is the transparent pin (no tile). The card offers Continue with Google (system browser, loopback return) plus employee ID or email. `dsh web` leaves those seats to the official brand and hides the Google button.
 
 ### Extension slots
 

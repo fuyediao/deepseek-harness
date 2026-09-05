@@ -20,15 +20,15 @@ Status: implemented
 
 Electron 窗口在会话界面可用之前占据 `shell.gate`。浏览器 Loader 创建 client 条目时不转发 yml 配置，因此该覆盖层依据 `dsh-app:` 渲染协议判断（测试传入 `requireSignIn`）。已存储的 `GEOCRM_HARNESS_TOKEN` 会跳过该页。新登录若没有 `desktop_agent` 会清除令牌并留在该页。从模型卡片退出登录会回到该页。`dsh web` 让 `shell.gate` 保持空。`shell.gate` 与 `shell.overlay` 横跨整个 AppFrame 网格，因此登录卡片可以在窗口正中铺开；若不横跨，绝对定位的占位只会填满侧栏那一列。
 
-桌面产品名是 GeoCRM Harness：原生窗口标题、NSIS `productName`、侧栏品牌占位（优先级 `-10`，从而盖过官方 DeepSeek 标记）、GeoCRM 地图针标记、登录页、桌面欢迎声明、`dsh electron` 帮助文本，以及 `app:electron-surface` 提示。包名、`dsh` CLI 动词和 `dsh web` 仍使用 DeepSeek Harness。
+桌面产品名是 GeoCRM Harness：原生窗口标题、NSIS `productName`、侧栏品牌占位（优先级 `-10`，从而盖过官方 DeepSeek 标记）、GeoCRM 地图针标记、空白会话首屏（透明地图针，无 DeepSeek 标题或预览徽标）、登录页、桌面欢迎声明、`dsh electron` 帮助文本，以及 `app:electron-surface` 提示。包名、`dsh` CLI 动词和 `dsh web` 仍使用 DeepSeek Harness。
 
 `@deepseek-ai/dsh-tool-geocrm` 在 electron 宿主平面注册 GeoCRM Harness 的一等工具（`list_my_access`、`list_entities`、检索/计数/汇总、创建/更新/删除）。每次调用都用已存储的 JWT POST 到 `/ai/harness/tools/{name}`。上传工具仍留在 GeoCRM。`dsh web` 与 headless 不挂载这一行。
 
 ## Testing
 
 - `packages/llm/llm-geocrm/tests` 覆盖目录 id、HTTP 映射、Responses 翻译、适配器 fetch、插件 `apply` 以及会话刷新。
-- `packages/client/ui-settings-models/tests` 覆盖 GeoCRM 占位符、登录 HTTP、Google 桌面调用、refresh 令牌持久化、`desktop_agent` 探测、`shell.gate` 覆盖层以及桌面品牌占位。
-- `apps/electron/tests/window-chrome.spec.ts` 会把官方前端标题后缀以及本地构建回退（`DSH Local Build`、`DSH 本地构建`）改写为 GeoCRM Harness。`apps/electron/tests/google-sign-in.spec.ts` 覆盖回环授权 URL、CSRF state 与令牌 POST。
+- `packages/client/ui-settings-models/tests` 覆盖 GeoCRM 占位符、登录 HTTP、Google 桌面调用、refresh 令牌持久化、`desktop_agent` 探测、`shell.gate` 覆盖层以及桌面品牌占位（含空白会话首屏）。
+- `apps/electron/tests/window-chrome.spec.ts` 会把官方前端标题后缀以及本地构建回退（`DSH Local Build`、`DSH 本地构建`）改写为 GeoCRM Harness。`apps/electron/tests/google-sign-in.spec.ts` 覆盖回环授权 URL、CSRF state、令牌 POST，以及监听关闭后的迟到请求。
 - `packages/llm/tool-geocrm/tests` 覆盖连接解析、令牌解析与 harness 工具 POST。
 
 ## Alternatives considered
@@ -53,7 +53,7 @@ Electron 窗口在会话界面可用之前占据 `shell.gate`。浏览器 Loader
 
 ## Consequences
 
-- 桌面窗口在会话界面之前显示 GeoCRM Harness 登录页。使用 Google 登录会打开系统浏览器；工号 / 邮箱仍留在卡片上。任务栏、标题栏和侧栏显示 GeoCRM Harness。设置 → 模型 仍显示 GeoCRM（而非 DeepSeek），用于退出登录与粘贴令牌。供应商密钥留在 GeoCRM 设置中；用户需要 `desktop_agent`。
+- 桌面窗口在会话界面之前显示 GeoCRM Harness 登录页。使用 Google 登录会打开系统浏览器；工号 / 邮箱仍留在卡片上。任务栏、标题栏、侧栏和空白会话首屏显示 GeoCRM Harness。设置 → 模型 仍显示 GeoCRM（而非 DeepSeek），用于退出登录与粘贴令牌。供应商密钥留在 GeoCRM 设置中；用户需要 `desktop_agent`。
 - 每个 electron 会话都会继承 GeoCRM CRM 工具。GeoCRM ACL 会拒绝已登录用户不能执行的读与写。隔离覆盖层禁用 `tool-geocrm`，使 e2e 目录不依赖该源站。
 - 桌面 profile 上的网页搜索没有 DeepSeek 搜索提供方。`web_fetch` 仍使用 `http`。
 - 复合模型 id（`deepseek:deepseek-v4-flash`）是模型选择器与 `agent-default-model` 存储的值。裸的碰撞 id 会被拒绝。
