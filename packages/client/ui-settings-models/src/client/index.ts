@@ -11,6 +11,8 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls the frame's SlotMap merge (the 'shell.gate' entry).
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+// Type-only: pulls the sidebar brand SlotMap merge.
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -23,7 +25,11 @@ import { WelcomeNotice } from './WelcomeNotice.tsx'
 import type { WelcomeNoticeInjected } from './WelcomeNotice.tsx'
 import { GeoCrmGate } from './GeoCrmGate.tsx'
 import type { GeoCrmGateInjected } from './GeoCrmGate.tsx'
-import { createSignInGate, shouldOccupySignInGate, type SignInGateConfig } from './sign-in-gate.ts'
+import { GeoCrmBrandMark, GeoCrmBrandName } from './GeoCrmBrand.tsx'
+import type { GeoCrmBrandNameInjected } from './GeoCrmBrand.tsx'
+import {
+  createSignInGate, DESKTOP_BRAND_PRIORITY, shouldOccupySignInGate, type SignInGateConfig,
+} from './sign-in-gate.ts'
 import { decodeWelcomeSection, WelcomeNoticeStore } from './welcome-store.ts'
 import { ModelsSettingsStore } from './store.ts'
 import { createModelsOperations } from './operations.ts'
@@ -74,7 +80,8 @@ export const inject = [
  * Register the Models section once the `settings.section` declaration is on
  * the ledger, wire its store to the connection, and keep it fresh on every
  * pushed invalidation (settings, credentials, or provider topology). The
- * desktop renderer also occupies `shell.gate` until a GeoCRM session exists.
+ * desktop renderer also occupies `shell.gate` and the sidebar brand seats
+ * and shows the GeoCRM product name.
  * @param ctx - client root context.
  * @param config - optional test override that forces the desktop cover.
  */
@@ -98,6 +105,7 @@ export function apply(ctx: ClientContext, config: SignInGateConfig = {}): void {
   })
   // The scope's own memory mode is what keeps a remote browser process-local,
   // so the store needs no isLoopback branch of its own.
+  const desktop = shouldOccupySignInGate(config)
   const welcomeController = new WelcomeNoticeStore(ctx.settingsScope.bind({
     namespace: WELCOME_NOTICE_SETTINGS_NAMESPACE,
     decode: decodeWelcomeSection,
@@ -106,6 +114,7 @@ export function apply(ctx: ClientContext, config: SignInGateConfig = {}): void {
     controller: welcomeController,
     hooks: { welcome: welcomeController.store },
     t,
+    desktop,
   })
 
   // Pushed invalidations converge every open surface without polling. The
@@ -145,7 +154,17 @@ export function apply(ctx: ClientContext, config: SignInGateConfig = {}): void {
     inject: welcomeInjected,
   }, WelcomeNotice))
 
-  if (!shouldOccupySignInGate(config)) return
+  if (!desktop) return
+
+  ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({
+    name: 'sidebar.brand.mark',
+    priority: DESKTOP_BRAND_PRIORITY,
+  }, GeoCrmBrandMark))
+  ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({
+    name: 'sidebar.brand.name',
+    priority: DESKTOP_BRAND_PRIORITY,
+    inject: (): GeoCrmBrandNameInjected => ({ t }),
+  }, GeoCrmBrandName))
 
   const gate = createSignInGate(ctx.settingsScope.describe(), operations)
   void gate.refresh()

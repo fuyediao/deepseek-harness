@@ -67,7 +67,7 @@ describe('electron-app runtime glue', () => {
 
     const assembly = await ctx.systemPrompt.assemble()
     const section = assembly.sections.find(entry => entry.name === 'app:electron-surface')
-    expect(section?.text).toContain('DeepSeek Harness desktop app')
+    expect(section?.text).toContain('GeoCRM desktop app')
     expect(assembly.sections.some(entry => entry.name === 'harness:source')).toBe(true)
 
     await ctx.fiber.dispose()

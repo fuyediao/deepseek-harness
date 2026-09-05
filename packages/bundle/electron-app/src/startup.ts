@@ -36,7 +36,7 @@ export interface ElectronStartupValues {
 function electronCommand(): Command {
   return new Command()
     .name('dsh --profile electron')
-    .description('Run the DeepSeek Harness desktop app.')
+    .description('Run the GeoCRM desktop app.')
     .helpOption('-h, --help', 'show this help')
     .option('--no-window', 'start the IPC listener without spawning the Electron window (composition smokes)')
     .addHelpText('after', `

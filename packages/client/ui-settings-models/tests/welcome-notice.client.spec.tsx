@@ -55,6 +55,7 @@ function mount(
   version?: string,
   mutateImpl: () => Promise<unknown> = () =>
     Promise.resolve(remoteAnswer(welcomeView({ [WELCOME_NOTICE_ACK_FIELD]: WELCOME_NOTICE_VERSION }, 1))),
+  desktop = false,
 ) {
   const appRoot = document.createElement('div')
   appRoot.id = 'root'
@@ -93,6 +94,7 @@ function mount(
     controller,
     useWelcome: bindSnapshotSelector(controller.store),
     t: key => zh[key],
+    desktop,
   }
   return { ...render(<WelcomeNotice {...props} />), complete, controller, mirror, mutate, appRoot }
 }
@@ -106,6 +108,17 @@ describe('WelcomeNotice', () => {
     })
     expect(en.welcomeBody).toBe(WELCOME_NOTICE_COPY.en.body)
     expect(zh.welcomeBody).toBe(WELCOME_NOTICE_COPY.zh.body)
+    expect(en.desktopWelcomeTitle).toBe('Welcome to GeoCRM')
+    expect(zh.desktopWelcomeTitle).toBe('欢迎使用 GeoCRM')
+  })
+
+  it('renders the desktop GeoCRM notice when the desktop flag is set', async () => {
+    mount(undefined, undefined, true)
+    const dialog = await screen.findByRole('dialog', { name: zh.desktopWelcomeTitle })
+    for (const paragraph of zh.desktopWelcomeBody.split('\n\n')) {
+      expect(screen.getByText(paragraph, { exact: true })).toBeTruthy()
+    }
+    expect(dialog.querySelectorAll('p')).toHaveLength(2)
   })
 
   it('renders one blocking modal action and focuses the title', async () => {

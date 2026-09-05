@@ -21,6 +21,12 @@ export const GEOCRM_SETTINGS_NS = 'llm-geocrm'
 /** Default access-token credential reference. */
 export const GEOCRM_DEFAULT_KEY_REF = 'GEOCRM_HARNESS_TOKEN'
 
+/**
+ * Sidebar brand cell rank on the desktop renderer. Lowest rank renders, so
+ * this shadows the official DeepSeek occupants without unloading that plugin.
+ */
+export const DESKTOP_BRAND_PRIORITY = -10
+
 /** Cover phase while the desktop window decides whether the shell may be used. */
 export type SignInGatePhase = 'checking' | 'locked' | 'open'
 

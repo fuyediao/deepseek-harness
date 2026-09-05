@@ -31,9 +31,10 @@ export const en = {
   keyPlaceholder: 'Enter your API key',
   keyPlaceholderGeocrm: 'Enter your GeoCRM session token',
   signInHint: 'Sign in with your GeoCRM employee ID or email. The session stays signed in; vendor API keys stay in GeoCRM Settings.',
-  gateTitle: 'Sign in to DeepSeek Harness',
+  gateTitle: 'Sign in to GeoCRM',
   gateSubtitle: 'Use your GeoCRM employee ID or email. Vendor API keys stay in GeoCRM Settings.',
   gateChecking: 'Checking your session\u2026',
+  brandName: 'GeoCRM',
   loginMode: 'Sign-in method',
   loginModeEmployeeId: 'Employee ID',
   loginModeEmail: 'Email',
@@ -122,6 +123,8 @@ export const en = {
   welcomeBody: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
   welcomeContinue: 'Continue',
   welcomeError: 'The acknowledgement could not be saved. Please try again.',
+  desktopWelcomeTitle: 'Welcome to GeoCRM',
+  desktopWelcomeBody: 'GeoCRM desktop is the signed-in workspace for CRM work. Sign in with your employee ID or email. Vendor API keys stay in GeoCRM Settings.\n\nThis window talks to your GeoCRM deployment. Use Settings → Models to sign out.',
 }
 
 /** The settings.models namespace key union. */
@@ -158,9 +161,10 @@ export const zh: { [Key in keyof typeof en]: string } = {
   keyPlaceholder: '输入 API 密钥',
   keyPlaceholderGeocrm: '输入 GeoCRM 会话令牌',
   signInHint: '使用 GeoCRM 工号或邮箱登录。登录后会话会保持；供应商 API 密钥仍保存在 GeoCRM 设置中。',
-  gateTitle: '登录 DeepSeek Harness',
+  gateTitle: '登录 GeoCRM',
   gateSubtitle: '使用 GeoCRM 工号或邮箱登录。供应商 API 密钥仍保存在 GeoCRM 设置中。',
   gateChecking: '正在检查会话\u2026',
+  brandName: 'GeoCRM',
   loginMode: '登录方式',
   loginModeEmployeeId: '工号',
   loginModeEmail: '邮箱',
@@ -249,4 +253,6 @@ export const zh: { [Key in keyof typeof en]: string } = {
   welcomeBody: 'DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSeek Harness 的核心插件以及基础 API 都会在接下来的一段时间内快速迭代、持续演化。\n\n我们期待与全球开发者一起，在开源、开放、可复用、可组合的基础设施之上，共同探索智能上限。欢迎全球 Harness 开发者加入 DSH 插件生态。',
   welcomeContinue: '继续',
   welcomeError: '暂时无法保存确认状态，请重试。',
+  desktopWelcomeTitle: '欢迎使用 GeoCRM',
+  desktopWelcomeBody: 'GeoCRM 桌面端是登录后使用的 CRM 工作区。请使用工号或邮箱登录。供应商 API 密钥仍保存在 GeoCRM 设置中。\n\n本窗口连接到你的 GeoCRM 部署。可在「设置 → 模型」中退出登录。',
 }

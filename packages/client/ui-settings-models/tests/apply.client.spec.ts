@@ -13,6 +13,7 @@ import {
 import { ModelsSection } from '../src/client/ModelsSection.tsx'
 import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
 import { GeoCrmGate } from '../src/client/GeoCrmGate.tsx'
+import { GeoCrmBrandMark, GeoCrmBrandName } from '../src/client/GeoCrmBrand.tsx'
 import { apply as hostApply } from '../src/index.ts'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
@@ -56,6 +57,8 @@ function declare(slots: SlotRegistry): () => void {
         'settings.section': { kind: 'list', scope: 'root' },
         'settings.onboarding': { kind: 'list', scope: 'root' },
         'shell.gate': { kind: 'single', scope: 'root' },
+        'sidebar.brand.mark': { kind: 'single', scope: 'root' },
+        'sidebar.brand.name': { kind: 'single', scope: 'root' },
       },
     } as never,
     () => null,
@@ -110,6 +113,8 @@ describe('ui-settings-models apply', () => {
     // The self-inflicted ledger notifications hit the duplicate guard.
     expect(after.slots.entries('settings.section')).toHaveLength(1)
     expect(after.slots.entries('shell.gate')).toHaveLength(0)
+    expect(after.slots.entries('sidebar.brand.mark')).toHaveLength(0)
+    expect(after.slots.entries('sidebar.brand.name')).toHaveLength(0)
   })
 
   it('occupies shell.gate only when the desktop cover is required', async () => {
@@ -117,6 +122,14 @@ describe('ui-settings-models apply', () => {
     declare(off.slots)
     await off.ctx.plugin({ inject: [...inject], apply }).await()
     expect(off.slots.entries('shell.gate')).toHaveLength(0)
+    expect(off.slots.entries('sidebar.brand.mark')).toHaveLength(0)
+    expect(off.slots.entries('sidebar.brand.name')).toHaveLength(0)
+    const offWelcome = (
+      off.slots.entries('settings.onboarding')
+        .find(candidate => candidate.options.id === 'welcome-notice')!
+        .inject as unknown as () => import('../src/client/WelcomeNotice.tsx').WelcomeNoticeInjected
+    )()
+    expect(offWelcome.desktop).toBe(false)
 
     const on = await bench()
     declare(on.slots)
@@ -125,6 +138,19 @@ describe('ui-settings-models apply', () => {
       apply: (ctx) => { apply(ctx, { requireSignIn: true }) },
     })
     await fiber.await()
+    expect(on.slots.entries('sidebar.brand.mark')[0]!.component).toBe(GeoCrmBrandMark)
+    const brandName = on.slots.entries('sidebar.brand.name')[0]!
+    expect(brandName.component).toBe(GeoCrmBrandName)
+    const brandInjected = (
+      brandName.inject as unknown as () => import('../src/client/GeoCrmBrand.tsx').GeoCrmBrandNameInjected
+    )()
+    expect(brandInjected.t('brandName')).toBe('GeoCRM')
+    const welcome = (
+      on.slots.entries('settings.onboarding')
+        .find(candidate => candidate.options.id === 'welcome-notice')!
+        .inject as unknown as () => import('../src/client/WelcomeNotice.tsx').WelcomeNoticeInjected
+    )()
+    expect(welcome.desktop).toBe(true)
     const entry = on.slots.entries('shell.gate')[0]!
     expect(entry.component).toBe(GeoCrmGate)
     const injected = (entry.inject as unknown as () => import('../src/client/GeoCrmGate.tsx').GeoCrmGateInjected)()
@@ -141,6 +167,8 @@ describe('ui-settings-models apply', () => {
     })
     await fiber.dispose()
     expect(on.slots.entries('shell.gate')).toHaveLength(0)
+    expect(on.slots.entries('sidebar.brand.mark')).toHaveLength(0)
+    expect(on.slots.entries('sidebar.brand.name')).toHaveLength(0)
   })
 
   it('the label thunk follows the active locale without re-registration', async () => {

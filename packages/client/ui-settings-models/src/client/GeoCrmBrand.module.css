@@ -1,0 +1,13 @@
+.mark {
+  display: block;
+  flex: none;
+  color: var(--dsw-alias-label-primary);
+}
+
+.name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary);
+}

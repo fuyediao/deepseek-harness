@@ -45,7 +45,7 @@ The versioned notice is the only `settings.onboarding` step this package registe
 
 ### Desktop sign-in
 
-On the Electron renderer this package also occupies `shell.gate`: the window stays on a GeoCRM sign-in panel until a session token is stored. `dsh web` leaves that seat empty.
+On the Electron renderer this package also occupies `shell.gate` and the sidebar brand seats: the window stays on a GeoCRM sign-in panel until a session token is stored, and the title bar and sidebar show GeoCRM. `dsh web` leaves those seats to the official brand.
 
 ### Extension slots
 

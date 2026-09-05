@@ -1,5 +1,5 @@
 ---
-description: "DeepSeek Harness 桌面应用：以 Electron 窗口运行与 Web GUI 相同的对话界面，且不监听任何网络端口。"
+description: "GeoCRM 桌面应用：以 Electron 窗口运行与 Web GUI 相同的对话界面，且不监听任何网络端口。"
 kind: "package-bundle"
 ---
 
@@ -33,7 +33,7 @@ dsh electron
 dsh electron --no-window
 ```
 
-`dsh electron` 是 `--profile electron` 的专用别名，与 `dsh web` 对应。启动后会打开一个 Electron 窗口并显示会话视图。`--no-window` 只启动 IPC 监听而不启动 Electron——适合无显示环境下的无密钥组合烟雾测试；该模式下没有任何客户端连接 socket，因此模型面不可达。
+`dsh electron` 是 `--profile electron` 的专用别名，与 `dsh web` 对应。启动后会打开标题为 GeoCRM 的 Electron 窗口，先显示登录页，再进入会话视图。`--no-window` 只启动 IPC 监听而不启动 Electron——适合无显示环境下的无密钥组合烟雾测试；该模式下没有任何客户端连接 socket，因此模型面不可达。
 
 `pnpm run dist:electron` 会在 `dist-electron/` 下写出一份未签名的 win-x64 NSIS 安装程序。该 exe 就是 Electron 壳：它会启动捆绑的 Node `dsh --profile electron --no-window` 配置树并以窗口身份连接，因此 Host 不会再拉起第二个 Electron 进程。
 

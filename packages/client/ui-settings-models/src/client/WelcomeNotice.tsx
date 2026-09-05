@@ -20,6 +20,11 @@ export interface WelcomeNoticeInjected {
   controller: WelcomeNoticeStore
   /** Onboarding copy. */
   t: (key: keyof typeof en) => string
+  /**
+   * Use the desktop GeoCRM notice. The Web GUI keeps the shipped
+   * DeepSeek Harness internal-testing copy.
+   */
+  desktop: boolean
 }
 
 /** Coordinator owner props plus this step's injected face. */
@@ -32,7 +37,7 @@ export type WelcomeNoticeProps =
  * @returns the welcome modal or null while the step decides not to show.
  */
 export function WelcomeNotice(props: WelcomeNoticeProps): ReactNode {
-  const { complete, controller, useWelcome, t } = props
+  const { complete, controller, useWelcome, t, desktop } = props
   const state = useWelcome(snapshot => snapshot)
   const finished = useRef(false)
   const finish = useCallback((): void => {
@@ -54,10 +59,10 @@ export function WelcomeNotice(props: WelcomeNoticeProps): ReactNode {
   const acknowledge = async (): Promise<void> => {
     if (await controller.acknowledge()) finish()
   }
-  const paragraphs = t('welcomeBody').split('\n\n')
+  const paragraphs = t(desktop ? 'desktopWelcomeBody' : 'welcomeBody').split('\n\n')
 
   return (
-    <OnboardingModal title={t('welcomeTitle')} focusTitle>
+    <OnboardingModal title={t(desktop ? 'desktopWelcomeTitle' : 'welcomeTitle')} focusTitle>
       <div className={css.copy}>
         {paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
       </div>

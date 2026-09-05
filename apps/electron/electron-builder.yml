@@ -2,7 +2,7 @@
 # carry a hoisted Node Host (`dsh --profile electron --no-window`) and the
 # built frontend dist. Invoked by scripts/build-electron-installer.ts.
 appId: ai.deepseek.harness
-productName: DeepSeek Harness
+productName: GeoCRM
 asar: true
 forceCodeSigning: false
 npmRebuild: false
@@ -27,4 +27,4 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  artifactName: DeepSeek-Harness-Setup-${version}-win-x64.${ext}
+  artifactName: GeoCRM-Setup-${version}-win-x64.${ext}

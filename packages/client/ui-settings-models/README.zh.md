@@ -45,7 +45,7 @@ kind: "package-reference"
 
 ### 桌面登录
 
-在 Electron 渲染进程中，本包还会占据 `shell.gate`：窗口停留在 GeoCRM 登录页，直到存入会话令牌。`dsh web` 让该席位保持为空。
+在 Electron 渲染进程中，本包还会占据 `shell.gate` 与侧栏品牌席位：窗口停留在 GeoCRM 登录页，直到存入会话令牌，标题栏和侧栏显示 GeoCRM。`dsh web` 把这些席位留给官方品牌。
 
 ### 扩展插槽
 

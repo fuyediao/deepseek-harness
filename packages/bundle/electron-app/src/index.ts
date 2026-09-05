@@ -131,7 +131,7 @@ function collectIndexInjections(ctx: Context): IndexInjection[] {
 
 /** Model-visible orientation for sessions created through `dsh --profile electron`. */
 function desktopSurfacePrompt(): string {
-  return 'You are interacting with the user through the DeepSeek Harness desktop app, an Electron window running the same '
+  return 'You are interacting with the user through the GeoCRM desktop app, an Electron window running the same '
     + 'conversation interface as the Web GUI. When the user refers to "this window" or "this app" without naming another '
     + 'target, they mean this window. There is no browser address bar or separate tab context; the window shows exactly '
     + 'one session. The app has no listening network server, so there is no URL to share or open elsewhere.'

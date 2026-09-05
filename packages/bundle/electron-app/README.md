@@ -1,5 +1,5 @@
 ---
-description: "The DeepSeek Harness desktop app: an Electron window running the same conversation interface as the Web GUI, with no listening network server."
+description: "The GeoCRM desktop app: an Electron window running the same conversation interface as the Web GUI, with no listening network server."
 kind: "package-bundle"
 ---
 
@@ -33,7 +33,7 @@ dsh electron
 dsh electron --no-window
 ```
 
-`dsh electron` is the deliberate alias for `--profile electron`, matching `dsh web`. After startup an Electron window opens and shows the conversation view. `--no-window` starts the IPC listener without spawning Electron — useful for a keyless composition smoke that has no display; nothing model-facing is reachable in that mode, since nothing connects to the socket.
+`dsh electron` is the deliberate alias for `--profile electron`, matching `dsh web`. After startup an Electron window titled GeoCRM opens on the sign-in panel, then the conversation view. `--no-window` starts the IPC listener without spawning Electron — useful for a keyless composition smoke that has no display; nothing model-facing is reachable in that mode, since nothing connects to the socket.
 
 `pnpm run dist:electron` writes an unsigned win-x64 NSIS installer under `dist-electron/`. That exe is the Electron shell: it starts the bundled Node `dsh --profile electron --no-window` tree and connects as the window, so the Host does not spawn a second Electron process.
 
