@@ -89,6 +89,12 @@ describe('ModelsSection theme styles', () => {
     expect(bare).toEqual([])
   })
 
+  it('centers the desktop cover brand and title', () => {
+    const gate = readFileSync(fileURLToPath(new URL('../src/client/GeoCrmGate.module.css', import.meta.url)), 'utf8')
+    expect(gate).toMatch(/\.brand \{[^}]*justify-content: center/s)
+    expect(gate).toMatch(/\.title \{[^}]*text-align: center/s)
+  })
+
   it('never falls back to a literal colour', () => {
     // A token that resolves is never the problem; an undeclared one takes this
     // branch, and a literal here is a single colour for both themes.

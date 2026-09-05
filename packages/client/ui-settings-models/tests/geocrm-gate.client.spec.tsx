@@ -5,7 +5,7 @@ import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { GeoCrmGate } from '../src/client/GeoCrmGate.tsx'
 import type { GeoCrmGateProps } from '../src/client/GeoCrmGate.tsx'
-import { en } from '../src/client/locales.ts'
+import { en, zh } from '../src/client/locales.ts'
 import type { ModelsOperations } from '../src/client/operations.ts'
 import {
   GEOCRM_DEFAULT_KEY_REF,
@@ -94,6 +94,8 @@ describe('GeoCrmGate', () => {
       origin: GEOCRM_DEFAULT_ORIGIN,
       keyRef: GEOCRM_DEFAULT_KEY_REF,
     }, { unlock })
+    expect(en.gateTitle).toBe('Welcome back')
+    expect(zh.gateTitle).toBe('欢迎回来')
     expect(screen.getByText(en.gateTitle)).toBeTruthy()
     expect(screen.getByText(en.brandName)).toBeTruthy()
     expect(screen.queryByText(en.signInHint)).toBeNull()
