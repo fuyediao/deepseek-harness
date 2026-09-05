@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  applyKeyPresence,
+  filterByKeyPresence,
+  parseConfiguredList,
   parseConfiguredProviders,
+  parseKeyPresence,
   providerKeyAliases,
   vendorHasConfiguredKey,
 } from '../src/keys.ts'
@@ -12,6 +14,7 @@ describe('providerKeyAliases', () => {
     expect(providerKeyAliases('OpenAI')).toEqual(['chatgpt', 'openai'])
     expect(providerKeyAliases('claude')).toEqual(['claude', 'anthropic'])
     expect(providerKeyAliases('ANTHROPIC')).toEqual(['claude', 'anthropic'])
+    expect(providerKeyAliases('deepseek')).toEqual(['deepseek'])
     expect(providerKeyAliases('gemini')).toEqual(['gemini'])
     expect(providerKeyAliases('  ')).toEqual([])
   })
@@ -19,10 +22,25 @@ describe('providerKeyAliases', () => {
 
 describe('vendorHasConfiguredKey', () => {
   it('treats openai as the ChatGPT key and ignores unknown slugs', () => {
-    const configured = new Set(['openai', 'gemini'])
+    const configured = new Set(['openai', 'gemini', 'deepseek'])
     expect(vendorHasConfiguredKey('chatgpt', configured)).toBe(true)
     expect(vendorHasConfiguredKey('gemini', configured)).toBe(true)
+    expect(vendorHasConfiguredKey('deepseek', configured)).toBe(true)
     expect(vendorHasConfiguredKey('claude', configured)).toBe(false)
+  })
+})
+
+describe('parseConfiguredList', () => {
+  it('keeps configured ids and rejects other JSON', () => {
+    expect(parseConfiguredList({ configured: ['OpenAI', '  deepseek  '] }))
+      .toEqual(new Set(['openai', 'deepseek']))
+    expect(parseConfiguredList({ configured: [] })).toEqual(new Set())
+    expect(parseConfiguredList(null)).toBeNull()
+    expect(parseConfiguredList([])).toBeNull()
+    expect(parseConfiguredList({})).toBeNull()
+    expect(parseConfiguredList({ configured: {} })).toBeNull()
+    expect(parseConfiguredList({ configured: [''] })).toBeNull()
+    expect(parseConfiguredList({ configured: [1] })).toBeNull()
   })
 })
 
@@ -48,16 +66,31 @@ describe('parseConfiguredProviders', () => {
   })
 })
 
-describe('applyKeyPresence', () => {
-  it('stamps configured when presence is known and leaves catalog flags otherwise', () => {
+describe('parseKeyPresence', () => {
+  it('prefers the configured-id list over connectivity rows', () => {
+    expect(parseKeyPresence({ configured: ['deepseek'] })).toEqual(new Set(['deepseek']))
+    expect(parseKeyPresence({ models: [{ model: 'openai' }] })).toEqual(new Set(['openai']))
+    expect(parseKeyPresence({ models: [{ id: 'x', provider: 'y' }] })).toBeNull()
+  })
+})
+
+describe('filterByKeyPresence', () => {
+  it('drops vendors without a key and honors catalog configured:false', () => {
     const rows = [
       { id: 'sol', provider: 'chatgpt' },
+      { id: 'flash', provider: 'deepseek' },
       { id: 'opus', provider: 'claude', configured: true },
+      { id: 'hidden', provider: 'grok', configured: false },
     ]
-    expect(applyKeyPresence(rows, null)).toEqual(rows)
-    expect(applyKeyPresence(rows, new Set(['openai']))).toEqual([
-      { id: 'sol', provider: 'chatgpt', configured: true },
-      { id: 'opus', provider: 'claude', configured: false },
+    expect(filterByKeyPresence(rows, null)).toEqual([
+      { id: 'sol', provider: 'chatgpt' },
+      { id: 'flash', provider: 'deepseek' },
+      { id: 'opus', provider: 'claude', configured: true },
     ])
+    expect(filterByKeyPresence(rows, new Set(['openai', 'deepseek']))).toEqual([
+      { id: 'sol', provider: 'chatgpt' },
+      { id: 'flash', provider: 'deepseek' },
+    ])
+    expect(filterByKeyPresence(rows, new Set())).toEqual([])
   })
 })

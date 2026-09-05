@@ -8,7 +8,7 @@ import {
 import { resolveRetryPolicy } from '@deepseek-ai/dsh-llm'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { GeoCrmAdapter } from '../src/adapter.ts'
-import { DEFAULT_MODELS, GEOCRM_NOT_CONFIGURED_DESCRIPTION } from '../src/catalog.ts'
+import { DEFAULT_MODELS } from '../src/catalog.ts'
 import { mockGeoCrm, writeSse, writeTurn } from './mock-server.ts'
 
 const servers: Array<{ close(): Promise<void> }> = []
@@ -86,8 +86,43 @@ describe('GeoCrmAdapter', () => {
     expect(server.requests[0]?.headers['user-agent']).toBe(attributionHeaders()['user-agent'])
   })
 
-  it('marks vendors omitted from connectivity as not configured', async () => {
+  it('lists only vendors that GET /ai/settings/configured says have a key', async () => {
     const server = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/configured') {
+        response.end(JSON.stringify({ configured: ['openai', 'deepseek'] }))
+        return
+      }
+      response.end(JSON.stringify({
+        models: [
+          { id: 'gpt-5.6-sol', provider: 'chatgpt', labelEn: 'Sol' },
+          { id: 'deepseek-v4-flash', provider: 'deepseek', labelEn: 'Flash' },
+          { id: 'claude-opus-5', provider: 'claude', labelEn: 'Opus' },
+        ],
+      }))
+    })
+    servers.push(server)
+    const adapter = adapterOf(server.origin)
+    expect(await adapter.listModels('geocrm')).toEqual([
+      { provider: 'geocrm', id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
+      { provider: 'geocrm', id: 'deepseek:deepseek-v4-flash', name: 'Flash' },
+    ])
+    expect(await adapter.discover({
+      baseURL: server.origin,
+      apiKey: 'typed-jwt',
+    })).toEqual([
+      { id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
+      { id: 'deepseek:deepseek-v4-flash', name: 'Flash' },
+    ])
+    expect(server.requests.some(request => request.url === '/ai/settings/connectivity')).toBe(false)
+  })
+
+  it('falls back to connectivity and hides vendors with no key', async () => {
+    const server = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/configured') {
+        response.statusCode = 404
+        response.end('no')
+        return
+      }
       if (request.url === '/ai/settings/connectivity') {
         response.end(JSON.stringify({
           models: [{ model: 'openai', ok: true }, { model: 'gemini', ok: false }],
@@ -98,30 +133,24 @@ describe('GeoCrmAdapter', () => {
         models: [
           { id: 'gpt-5.6-sol', provider: 'chatgpt', labelEn: 'Sol' },
           { id: 'gemini-3.1-pro-preview', provider: 'gemini', labelEn: 'Gemini' },
+          { id: 'deepseek-v4-flash', provider: 'deepseek', labelEn: 'Flash' },
           { id: 'claude-opus-5', provider: 'claude', labelEn: 'Opus' },
         ],
       }))
     })
     servers.push(server)
-    const models = await adapterOf(server.origin).listModels('geocrm')
-    expect(models).toEqual([
+    expect(await adapterOf(server.origin).listModels('geocrm')).toEqual([
       { provider: 'geocrm', id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
       { provider: 'geocrm', id: 'gemini:gemini-3.1-pro-preview', name: 'Gemini' },
-      {
-        provider: 'geocrm',
-        id: 'claude:claude-opus-5',
-        name: 'Opus',
-        description: GEOCRM_NOT_CONFIGURED_DESCRIPTION,
-      },
     ])
-    expect(server.requests.some(request => (
-      request.method === 'POST' && request.url === '/ai/settings/connectivity'
-    ))).toBe(true)
   })
 
-  it('leaves catalog rows unmarked when connectivity is missing or not the probe payload', async () => {
+  it('leaves the catalog listed when key presence cannot be read', async () => {
     const missing = await mockGeoCrm((request, response) => {
-      if (request.url === '/ai/settings/connectivity') {
+      if (
+        request.url === '/ai/settings/configured'
+        || request.url === '/ai/settings/connectivity'
+      ) {
         response.statusCode = 404
         response.end('no')
         return
@@ -136,23 +165,25 @@ describe('GeoCrmAdapter', () => {
     ])
 
     const empty = await mockGeoCrm((request, response) => {
-      if (request.url === '/ai/settings/connectivity') {
-        response.end(JSON.stringify({ models: [] }))
+      if (request.url === '/ai/settings/configured') {
+        response.end(JSON.stringify({ configured: [] }))
         return
       }
       response.end(JSON.stringify({
-        models: [{ id: 'claude-opus-5', provider: 'claude', labelEn: 'Opus' }],
+        models: [
+          { id: 'claude-opus-5', provider: 'claude', labelEn: 'Opus' },
+          { id: 'deepseek-v4-flash', provider: 'deepseek', labelEn: 'Flash' },
+        ],
       }))
     })
     servers.push(empty)
-    expect(await adapterOf(empty.origin).listModels('geocrm')).toEqual([{
-      provider: 'geocrm',
-      id: 'claude:claude-opus-5',
-      name: 'Opus',
-      description: GEOCRM_NOT_CONFIGURED_DESCRIPTION,
-    }])
+    expect(await adapterOf(empty.origin).listModels('geocrm')).toEqual([])
 
     const garbled = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/configured') {
+        response.end('not-json')
+        return
+      }
       if (request.url === '/ai/settings/connectivity') {
         response.end('not-json')
         return

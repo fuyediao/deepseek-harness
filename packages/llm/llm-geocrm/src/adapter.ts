@@ -34,7 +34,7 @@ import {
   type GeoCrmCatalogEntry,
   type GeoCrmCatalogModel,
 } from './catalog.ts'
-import { applyKeyPresence, parseConfiguredProviders } from './keys.ts'
+import { filterByKeyPresence, parseConfiguredList, parseConfiguredProviders } from './keys.ts'
 import { geocrmHttpErrorCode, normalizeGeoCrmOrigin, parseGeoCrmErrorBody } from './http.ts'
 import { chunksFromGeoCrmEvents, parseGeoCrmSseEvent, readSseData, toGeoCrmRequest } from './translate.ts'
 
@@ -105,7 +105,7 @@ export class GeoCrmAdapter extends LlmAdapter {
         this.fetchCatalog(origin, token),
         this.fetchConfiguredProviders(origin, token),
       ])
-      return catalogEntriesToModels(provider, applyKeyPresence(live, configured))
+      return catalogEntriesToModels(provider, filterByKeyPresence(live, configured))
     } catch {
       // Advisory catalog remains the answer when the token is missing or the
       // origin is unreachable; stream still fails at the Responses POST.
@@ -178,7 +178,8 @@ export class GeoCrmAdapter extends LlmAdapter {
       return catalogEntriesToDiscovered(STATIC_FLAGSHIP_MODELS)
     }
     const entries = await this.fetchCatalog(origin, request.apiKey, signal)
-    return catalogEntriesToDiscovered(entries)
+    const configured = await this.fetchConfiguredProviders(origin, request.apiKey)
+    return catalogEntriesToDiscovered(filterByKeyPresence(entries, configured))
   }
 
   /**
@@ -312,9 +313,9 @@ export class GeoCrmAdapter extends LlmAdapter {
   }
 
   /**
-   * POST `/ai/settings/connectivity` for BYOK key presence only.
-   * Providers that appear have a key; omitted vendors are Not Configured.
-   * A failed or unrecognized body leaves presence unknown.
+   * `GET /ai/settings/configured` (ids only), then
+   * `POST /ai/settings/connectivity` if that route is absent.
+   * A failed or unrecognized body leaves presence unknown so the catalog stays listed.
    * @param origin - GeoCRM API origin.
    * @param apiKey - Supabase session JWT.
    * @returns lowercase provider ids, or `null` when presence is unknown.
@@ -323,19 +324,32 @@ export class GeoCrmAdapter extends LlmAdapter {
     origin: string,
     apiKey: string,
   ): Promise<ReadonlySet<string> | null> {
+    const headers = {
+      ...attributionHeaders(),
+      authorization: `Bearer ${apiKey}`,
+      accept: 'application/json',
+    }
+    try {
+      const listed = await this.request(`${origin}/ai/settings/configured`, {
+        method: 'GET',
+        headers,
+      })
+      if (listed.ok) {
+        const parsed = parseConfiguredList(await listed.json() as unknown)
+        if (parsed !== null) return parsed
+      }
+    } catch {
+      // Fall through to the connectivity probe.
+    }
     try {
       const response = await this.request(`${origin}/ai/settings/connectivity`, {
         method: 'POST',
-        headers: {
-          ...attributionHeaders(),
-          authorization: `Bearer ${apiKey}`,
-          accept: 'application/json',
-        },
+        headers,
       })
       if (!response.ok) return null
       return parseConfiguredProviders(await response.json() as unknown)
     } catch {
-      // Connectivity is advisory; the catalog stays usable without marks.
+      // Presence is advisory; the catalog stays listed when neither route answers.
       return null
     }
   }

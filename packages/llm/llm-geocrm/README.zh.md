@@ -53,7 +53,7 @@ kind: "package-reference"
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-llm-geocrm)是每个已接受字段及其 JSDoc 的完整来源。
 
-令牌必须属于拥有 `desktop_agent` 且已在 GeoCRM 设置中保存 BYOK 密钥的 GeoCRM 用户。把 VPS 源站写进调用目录的 `.env`：`GEOCRM_BASE_URL=https://api.example.com` 或 `GEOCRM_DEPLOYMENT_DOMAIN=example.com`（与 GeoCRM Electron 的 `VITE_DEPLOYMENT_DOMAIN` 使用同一主机名）。窗口登录页会保存来自 GeoCRM `POST /auth/password`（工号会先解析）或桌面 Google 登录的 refresh 令牌。在访问 JWT 距离 `exp` 不足五分钟时，本插件会调用 `POST /auth/refresh`。401/403 为 `AUTH`；422 `missing_api_key` 为 `INVALID_REQUEST`（在 GeoCRM 中添加供应商密钥，而不是在这里）。`listModels` 还会调用 `POST /ai/settings/connectivity`：出现在结果里的供应商表示已有密钥（探测是否成功会被忽略）；未出现的供应商会在 composer 中标为「未设定」。
+令牌必须属于拥有 `desktop_agent` 且已在 GeoCRM 设置中保存 BYOK 密钥的 GeoCRM 用户。把 VPS 源站写进调用目录的 `.env`：`GEOCRM_BASE_URL=https://api.example.com` 或 `GEOCRM_DEPLOYMENT_DOMAIN=example.com`（与 GeoCRM Electron 的 `VITE_DEPLOYMENT_DOMAIN` 使用同一主机名）。窗口登录页会保存来自 GeoCRM `POST /auth/password`（工号会先解析）或桌面 Google 登录的 refresh 令牌。在访问 JWT 距离 `exp` 不足五分钟时，本插件会调用 `POST /auth/refresh`。401/403 为 `AUTH`；422 `missing_api_key` 为 `INVALID_REQUEST`（在 GeoCRM 中添加供应商密钥，而不是在这里）。`listModels` 会请求 `GET /ai/settings/configured`，查询哪些供应商已有密钥（包括 DeepSeek）。若该路由不存在，则用同样规则读取 `POST /ai/settings/connectivity`。没有密钥的供应商不会出现在 composer 中。
 
 -----
 
@@ -74,7 +74,7 @@ kind: "package-reference"
 | [`src/session.ts`](src/session.ts) | 通过 `POST /auth/refresh` 轮换 access/refresh |
 | [`src/adapter.ts`](src/adapter.ts) | `GeoCrmAdapter`：目录拉取、Responses POST、空闲看门狗 |
 | [`src/catalog.ts`](src/catalog.ts) | 复合 id、静态旗舰、目录 JSON |
-| [`src/keys.ts`](src/keys.ts) | 由连通性探测与目录 `configured` 得出的 BYOK 密钥有无 |
+| [`src/keys.ts`](src/keys.ts) | 由 `GET /ai/settings/configured` 与连通性得出的 BYOK 密钥有无 |
 | [`src/translate.ts`](src/translate.ts) | harness 消息到 Responses 体；SSE 到 stream chunks |
 | [`src/http.ts`](src/http.ts) | 源站规范化与 HTTP 错误码 |
 
