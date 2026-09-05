@@ -1,9 +1,10 @@
 /**
- * GeoCRM employee-id or email password sign-in on the Models card.
- * The desktop renderer also offers Google through the Electron preload
- * (`GET /auth/google` in the system browser). Stores the access JWT and
- * refresh token through the credentials Remote and probes `list_my_access`
- * so the card can show `desktop_agent`.
+ * GeoCRM employee-id or email password sign-in for the window cover.
+ * The Models card mounts the same component with `sessionOnly` so it can
+ * sign out without repeating the form. The desktop cover also offers Google
+ * through the Electron preload (`GET /auth/google` in the system browser).
+ * Stores the access JWT and refresh token through the credentials Remote
+ * and probes `list_my_access` so the cover can require `desktop_agent`.
  */
 
 import { useState } from 'react'
@@ -57,12 +58,17 @@ export interface GeoCrmSignInProps {
   hideHint?: boolean
   /** Use the full-window cover field chrome instead of the Models-card controls. */
   cover?: boolean
+  /**
+   * Models-card session bar: hint plus Sign out. Login fields stay on the
+   * window cover; this card does not collect them again.
+   */
+  sessionOnly?: boolean
 }
 
 /**
- * Render GeoCRM sign-in and the last access probe from this card session.
+ * Render GeoCRM sign-in, or the Models-card session bar when `sessionOnly`.
  * @param props - origin, credential writes, and copy.
- * @returns the sign-in block.
+ * @returns the sign-in block or session bar.
  */
 export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
   const { t } = props
@@ -187,6 +193,29 @@ export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
   const inputClass = onCover ? cover.input : styles['input']
   const actionsClass = onCover ? cover.actions : styles['signInActions']
   const submitClass = onCover ? cover.submit : styles['primaryButton']
+
+  if (props.sessionOnly === true) {
+    return (
+      <div className={formClass}>
+        <p className={styles['advancedHint']}>{t('modelsSessionHint')}</p>
+        {props.configured
+          ? (
+            <div className={actionsClass}>
+              <button
+                type="button"
+                className={styles['secondaryButton']}
+                disabled={disabled}
+                onClick={() => { void signOut() }}
+              >
+                {t('signOut')}
+              </button>
+            </div>
+          )
+          : null}
+        {failure === undefined ? null : <p className={styles['error']}>{failure}</p>}
+      </div>
+    )
+  }
 
   return (
     <div className={formClass}>

@@ -50,6 +50,24 @@ function jsonResponse(body: unknown, ok = true, status = 200) {
 }
 
 describe('GeoCrmSignIn', () => {
+  it('shows sign-in validation errors without calling the origin', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    mount()
+    fireEvent.click(screen.getByText(en.signIn))
+    await screen.findByText(en.employeeIdRequired)
+    fireEvent.change(screen.getByLabelText(en.employeeId), { target: { value: 'ab' } })
+    fireEvent.click(screen.getByText(en.signIn))
+    await screen.findByText(en.employeeIdInvalid)
+    fireEvent.click(screen.getByText(en.loginModeEmail))
+    fireEvent.click(screen.getByText(en.signIn))
+    await screen.findByText(en.emailRequired)
+    fireEvent.change(screen.getByLabelText(en.loginEmail), { target: { value: 'ada@example.com' } })
+    fireEvent.click(screen.getByText(en.signIn))
+    await screen.findByText(en.passwordRequired)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('signs in with email and shows a missing desktop_agent warning', async () => {
     const storeCredential = vi.fn(() => Promise.resolve(undefined))
     const onCredentialChange = vi.fn()
@@ -236,6 +254,42 @@ describe('GeoCrmSignIn', () => {
     await waitFor(() => { expect(screen.getByText(en.signInWithGoogle)).toBeTruthy() })
     fireEvent.click(screen.getByText(en.signInWithGoogle))
     await screen.findByText(en.googleSignInCancelled)
+  })
+
+  it('renders a session bar without login fields', async () => {
+    const removeCredential = vi.fn(() => Promise.resolve(undefined))
+    const onCredentialChange = vi.fn()
+    mount({
+      sessionOnly: true,
+      configured: true,
+      operations: operations({ removeCredential }),
+      onCredentialChange,
+    })
+    expect(screen.getByText(en.modelsSessionHint)).toBeTruthy()
+    expect(screen.queryByText(en.signInHint)).toBeNull()
+    expect(screen.queryByLabelText(en.employeeId)).toBeNull()
+    expect(screen.queryByText(en.signIn)).toBeNull()
+    fireEvent.click(screen.getByText(en.signOut))
+    await waitFor(() => { expect(onCredentialChange).toHaveBeenCalled() })
+    expect(removeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN')
+    expect(removeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH')
+  })
+
+  it('hides Sign out on the session bar when no token is stored', () => {
+    mount({ sessionOnly: true, configured: false })
+    expect(screen.getByText(en.modelsSessionHint)).toBeTruthy()
+    expect(screen.queryByText(en.signOut)).toBeNull()
+  })
+
+  it('reports a refused remove from the session bar', async () => {
+    const removeCredential = vi.fn(() => Promise.resolve('cannot-unset'))
+    mount({
+      sessionOnly: true,
+      configured: true,
+      operations: operations({ removeCredential }),
+    })
+    fireEvent.click(screen.getByText(en.signOut))
+    await screen.findByText('cannot-unset')
   })
 
   it('hides Google sign-in when a session is already stored', () => {

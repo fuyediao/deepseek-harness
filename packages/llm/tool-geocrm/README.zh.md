@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-挂载 `dsh-tool-geocrm` 后，桌面 agent 可以按已登录用户读写 GeoCRM 数据：列出授权、列出实体、检索与计数、汇总周期，以及创建、更新或删除记录。每次调用都由 GeoCRM 执行 `desktop_agent` 与按实体写入授权。在 Electron profile 上、模型卡片已登录 GeoCRM 时选择它；`dsh web` 与 headless 不挂载它。上传类工具未包含。
+挂载 `dsh-tool-geocrm` 后，桌面 agent 可以按已登录用户读写 GeoCRM 数据：列出授权、列出实体、检索与计数、汇总周期，以及创建、更新或删除记录。每次调用都由 GeoCRM 执行 `desktop_agent` 与按实体写入授权。在 Electron profile 上、窗口已登录 GeoCRM 时选择它；`dsh web` 与 headless 不挂载它。上传类工具未包含。
 
 ## 目录
 
@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-在已经存有 GeoCRM 会话对（`GEOCRM_HARNESS_TOKEN` 与 `GEOCRM_HARNESS_REFRESH`）并能访问 `geocrm-api` 源站的 Host 上挂载本插件。Electron 包会这样做：模型卡片完成登录后，这些工具用有效 JWT POST 到 `/ai/harness/tools/{name}`。
+在已经存有 GeoCRM 会话对（`GEOCRM_HARNESS_TOKEN` 与 `GEOCRM_HARNESS_REFRESH`）并能访问 `geocrm-api` 源站的 Host 上挂载本插件。Electron 包会这样做：窗口登录页完成登录后，这些工具用有效 JWT POST 到 `/ai/harness/tools/{name}`。
 
 ### 何时选择它
 

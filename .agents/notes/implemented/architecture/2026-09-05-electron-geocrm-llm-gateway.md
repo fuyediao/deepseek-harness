@@ -16,7 +16,7 @@ The `electron` profile overlay disables `llm-deepseek` and `web-search-deepseek`
 
 Picker ids are composite `provider:model` values because GeoCRM catalog ids can collide across slugs. The adapter sends the slug as `x-geocrm-provider` and the vendor id as `model`. The Models card (`llm-geocrm`) stores the session token under `GEOCRM_HARNESS_TOKEN`. The API origin comes from the launch environment (`GEOCRM_BASE_URL`, or `GEOCRM_DEPLOYMENT_DOMAIN` as `https://api.{domain}`), then an explicit settings `baseURL`, then `http://127.0.0.1:3001`.
 
-`packages/client/ui-settings-models` maps `llm-geocrm` to a curated editor: GeoCRM employee-id or email sign-in (public `POST /auth/password` and `POST /auth/public/resolve-employee-id`), desktop Google sign-in (`GET /auth/google` in the system browser, tokens returned on a short-lived `127.0.0.1` loopback), a write-only token paste fallback, customizable origin, and the shared model-list editor so Fetch can call registered discovery. After sign-in the card probes `POST /ai/harness/tools/list_my_access` and shows whether `desktop_agent` is granted. `dsh web` has no Electron preload, so that page hides the Google button.
+`packages/client/ui-settings-models` maps `llm-geocrm` to a curated editor: a session bar (Sign out returns to the window cover), the shared model-list editor so Fetch can call registered discovery, and Customized settings for origin plus a write-only token paste fallback. Employee-id or email sign-in (public `POST /auth/password` and `POST /auth/public/resolve-employee-id`) and desktop Google sign-in (`GET /auth/google` in the system browser, tokens returned on a short-lived `127.0.0.1` loopback) live on the window cover. After cover sign-in the cover probes `POST /ai/harness/tools/list_my_access` and keeps the window locked unless `desktop_agent` is granted. `dsh web` does not mount this card.
 
 The Electron window occupies `shell.gate` before the conversation shell is usable. The browser Loader creates client entries without yml config, so the cover keys off the `dsh-app:` renderer protocol (tests pass `requireSignIn`). A stored `GEOCRM_HARNESS_TOKEN` skips the panel. A fresh sign-in without `desktop_agent` clears the tokens and stays on the panel. Sign-out from the Models card returns to the panel. `dsh web` leaves `shell.gate` empty. `shell.gate` and `shell.overlay` span the full AppFrame grid so the cover can center a product card over the window; without that span an absolutely positioned occupant only fills the sidebar column.
 
@@ -27,7 +27,7 @@ The desktop product name is GeoCRM Harness: native window title, NSIS `productNa
 ## Testing
 
 - `packages/llm/llm-geocrm/tests` cover catalog ids, HTTP mapping, Responses translation, adapter fetch, plugin `apply`, and session refresh.
-- `packages/client/ui-settings-models/tests` cover the GeoCRM placeholders, sign-in HTTP, Google desktop invoke, refresh-token persist, `desktop_agent` probe, the `shell.gate` cover, and desktop brand occupancy including the blank-session hero.
+- `packages/client/ui-settings-models/tests` cover the GeoCRM session bar and model list, cover sign-in HTTP, Google desktop invoke, refresh-token persist, `desktop_agent` probe, the `shell.gate` cover, and desktop brand occupancy including the blank-session hero.
 - `apps/electron/tests/window-chrome.spec.ts` rewrites the official frontend title suffix and the local-build fallbacks (`DSH Local Build`, `DSH 本地构建`) to GeoCRM Harness. `apps/electron/tests/google-sign-in.spec.ts` covers the loopback authorize URL, CSRF state, token POST, and a late request after the listener closes.
 - `packages/llm/tool-geocrm/tests` cover connection resolution, token resolution, and harness tool POST.
 
@@ -53,7 +53,7 @@ The desktop product name is GeoCRM Harness: native window title, NSIS `productNa
 
 ## Consequences
 
-- The desktop window shows a GeoCRM Harness sign-in panel before the conversation shell. Continue with Google opens the system browser; employee ID / email stay on the card. The taskbar, title bar, sidebar, and blank-session hero show GeoCRM Harness. Settings → Models still shows GeoCRM, not DeepSeek, for sign-out and token paste. Vendor keys stay in GeoCRM Settings; the user needs `desktop_agent`.
+- The desktop window shows a GeoCRM Harness sign-in panel before the conversation shell. Continue with Google opens the system browser; employee ID / email stay on that panel. The taskbar, title bar, sidebar, and blank-session hero show GeoCRM Harness. Settings → Models still shows GeoCRM, not DeepSeek: the model catalog, Sign out, and a token-paste fallback under Customized. Vendor keys stay in GeoCRM Settings; the user needs `desktop_agent`.
 - Every electron session inherits GeoCRM CRM tools. GeoCRM ACL refuses reads and writes the signed-in user cannot perform. Isolation overlays disable `tool-geocrm` so e2e catalogs stay free of that origin.
 - Web search on the desktop profile has no DeepSeek search provider. `web_fetch` still uses `http`.
 - Composite model ids (`deepseek:deepseek-v4-flash`) are what the composer and `agent-default-model` store. A bare colliding id is refused.

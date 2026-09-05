@@ -1,16 +1,17 @@
 /**
  * One provider's editor card, hand-written per adapter family: the primary
- * field is a single write-only **API key** input (the page never asks for an
+ * field is a single write-only **API key** input except for GeoCRM, which
+ * shows the stored window session and the model list (the page never asks for an
  * environment-variable name — a typed key stores through `credentials/set`
  * under the profile's reference, deriving `<ROUTE>_API_KEY` when the profile
  * has none. The pi-ai profile records that derivation as `apiKeyEnv` only when
  * a key is entered; a blank key materializes a reference-free profile for
  * provider-native authentication);
  * the collapsed Custom settings area carries the per-family extras (`baseURL` for
- * both families, DeepSeek's id/name/context-window model catalog, and the
- * display name and wire protocol of a pi-ai route the adapter does not ship —
- * the two fields the create card asked that route for, editable here for the
- * same reason).
+ * both families, DeepSeek's id/name/context-window model catalog, GeoCRM's
+ * optional token-paste fallback, and the display name and wire protocol of a
+ * pi-ai route the adapter does not ship — the two fields the create card asked
+ * that route for, editable here for the same reason).
  * Reasoning effort is deliberately absent: it is a per-MODEL capability, and
  * the models under one provider disagree about it, so a provider-scoped
  * control can only be set to a value some of them reject. The composer's
@@ -352,11 +353,29 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
       },
       onReset: () => { setDraft(current => schema.deletePath(current, ['models'])) },
     }
+    const keyField = (
+      <div className={styles['field']}>
+        <span className={styles['fieldLabel']}>{t('keyInput')}</span>
+        <input
+          className={styles['input']}
+          type="password"
+          autoComplete="off"
+          value={keyDraft}
+          placeholder={keyPlaceholder}
+          aria-label={t('keyInput')}
+          aria-invalid={keyFailure !== undefined}
+          disabled={disabled || keyLocked}
+          onChange={(event) => { setKeyDraft(event.target.value) }}
+        />
+        {keyFailure === undefined ? null : <p className={styles['error']}>{t(keyFailure)}</p>}
+      </div>
+    )
     return (
       <>
         {family === 'geocrm'
           ? (
             <GeoCrmSignIn
+              sessionOnly
               origin={resolveCardOrigin(
                 stringAt(schema.getPath(namespace.base, settingsPath), 'baseURL'),
                 probeBaseURL,
@@ -371,21 +390,17 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
             />
           )
           : null}
-        <div className={styles['field']}>
-          <span className={styles['fieldLabel']}>{t('keyInput')}</span>
-          <input
-            className={styles['input']}
-            type="password"
-            autoComplete="off"
-            value={keyDraft}
-            placeholder={keyPlaceholder}
-            aria-label={t('keyInput')}
-            aria-invalid={keyFailure !== undefined}
-            disabled={disabled || keyLocked}
-            onChange={(event) => { setKeyDraft(event.target.value) }}
-          />
-          {keyFailure === undefined ? null : <p className={styles['error']}>{t(keyFailure)}</p>}
-        </div>
+        {family === 'geocrm' ? null : keyField}
+        {family === 'geocrm'
+          ? (
+            <ModelListEditor
+              {...catalogProps}
+              probe={probe}
+              probeBlocked={keyFailure}
+              operations={operations}
+            />
+          )
+          : null}
         <details className={styles['customized']}>
           <summary className={styles['customizedSummary']}>{t('customized')}</summary>
           <div className={styles['customizedBody']}>
@@ -463,6 +478,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
             {/* Both families edit the same rows through the same contract; only
                 the extras differ — DeepSeek's inherited capacities, pi-ai's
                 endpoint interrogation. */}
+            {family === 'geocrm' ? keyField : null}
             {family === 'deepseek'
               ? (
                 <DeepSeekModelsEditor
@@ -473,14 +489,16 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                   defaultMaxTokens={typeof defaultMaxTokens === 'number' ? defaultMaxTokens : undefined}
                 />
               )
-              : (
-                <ModelListEditor
-                  {...catalogProps}
-                  probe={probe}
-                  probeBlocked={keyFailure}
-                  operations={operations}
-                />
-              )}
+              : family === 'geocrm'
+                ? null
+                : (
+                  <ModelListEditor
+                    {...catalogProps}
+                    probe={probe}
+                    probeBlocked={keyFailure}
+                    operations={operations}
+                  />
+                )}
           </div>
         </details>
       </>

@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-With `dsh-tool-geocrm`, the desktop agent can read and write GeoCRM data as the signed-in user: list grants, list entities, search and count rows, summarize periods, and create, update, or delete records. GeoCRM enforces `desktop_agent` and per-entity write grants on every call. Choose it on the Electron profile when the Models card signs in to GeoCRM; `dsh web` and headless do not mount it. Upload tools are omitted.
+With `dsh-tool-geocrm`, the desktop agent can read and write GeoCRM data as the signed-in user: list grants, list entities, search and count rows, summarize periods, and create, update, or delete records. GeoCRM enforces `desktop_agent` and per-entity write grants on every call. Choose it on the Electron profile when the window is signed in to GeoCRM; `dsh web` and headless do not mount it. Upload tools are omitted.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ With `dsh-tool-geocrm`, the desktop agent can read and write GeoCRM data as the 
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin on a Host that already stores a GeoCRM session pair (`GEOCRM_HARNESS_TOKEN` and `GEOCRM_HARNESS_REFRESH`) and can reach a `geocrm-api` origin. The Electron bundle does that: the Models card signs in, then these tools post to `/ai/harness/tools/{name}` with a live JWT.
+Mount this plugin on a Host that already stores a GeoCRM session pair (`GEOCRM_HARNESS_TOKEN` and `GEOCRM_HARNESS_REFRESH`) and can reach a `geocrm-api` origin. The Electron bundle does that: the window cover signs in, then these tools post to `/ai/harness/tools/{name}` with a live JWT.
 
 ### When to choose it
 

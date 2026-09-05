@@ -948,7 +948,7 @@ describe('ModelsSection', () => {
     expect(baseURL.value).toBe('')
   })
 
-  it('pins the GeoCRM session-token and local-origin placeholders', async () => {
+  it('shows the GeoCRM session bar and model list without a second login', async () => {
     const { face } = scriptedFace()
     const GeoCrmConfig = Schema.object({
       apiKeyEnv: Schema.string().role('credential-ref'),
@@ -978,44 +978,25 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={() => {}}
     />)
-    expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).placeholder).toBe(en.keyPlaceholderGeocrm)
-    expect(screen.getByText(en.signInHint)).toBeTruthy()
+    expect(screen.getByText(en.modelsSessionHint)).toBeTruthy()
+    expect(screen.queryByText(en.signInHint)).toBeNull()
+    expect(screen.queryByLabelText(en.employeeId)).toBeNull()
+    expect(screen.queryByText(en.signIn)).toBeNull()
+    expect(screen.getByLabelText(en.models)).toBeTruthy()
     fireEvent.click(screen.getByText(en.customized))
+    expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).placeholder).toBe(en.keyPlaceholderGeocrm)
     expect(screen.getByLabelText<HTMLInputElement>(en.baseUrl).placeholder).toBe('http://127.0.0.1:3001')
   })
 
-  it('signs in to GeoCRM with an employee id and probes desktop_agent', async () => {
-    const { face } = scriptedFace()
-    const set = face.credentials.set as ReturnType<typeof vi.fn>
-    const fetchMock = vi.fn((input: string) => {
-      if (String(input).includes('resolve-employee-id')) {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve(JSON.stringify({ email: 'ada@example.com' })),
-        })
-      }
-      if (String(input).includes('/auth/password')) {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve(JSON.stringify({
-            access_token: 'jwt',
-            refresh_token: 'refresh',
-            user: { email: 'ada@example.com' },
-          })),
-        })
-      }
-      return Promise.resolve({
-        ok: true,
-        text: () => Promise.resolve(JSON.stringify({
-          result: JSON.stringify({
-            role: 'member',
-            desktop_modules: ['desktop_agent'],
-            readable_entities: ['customers'],
-          }),
-        })),
-      })
-    })
-    vi.stubGlobal('fetch', fetchMock)
+  it('signs out of GeoCRM from the Models card', async () => {
+    const { face, unset } = scriptedFace()
+    face.credentials.describe = vi.fn((refs: string[]) =>
+      Promise.resolve(remoteOk(
+        Object.fromEntries(refs.map(ref => [ref, {
+          configured: ref === 'GEOCRM_HARNESS_TOKEN',
+          writable: true,
+        }])),
+      )))
     const GeoCrmConfig = Schema.object({
       apiKeyEnv: Schema.string().role('credential-ref'),
       baseURL: Schema.string(),
@@ -1040,58 +1021,11 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={() => {}}
     />)
-    fireEvent.change(screen.getByLabelText(en.employeeId), { target: { value: '1' } })
-    fireEvent.change(screen.getByLabelText(en.loginPassword), { target: { value: 'secret' } })
-    fireEvent.click(screen.getByText(en.signIn))
-    await waitFor(() => { expect(set).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN', 'jwt') })
-    expect(set).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH', 'refresh')
-    await screen.findByText(`${en.accountSignedIn} ada@example.com`)
-    expect(screen.getByText((content) => content.includes(en.accountDesktopAgent))).toBeTruthy()
-    fireEvent.click(screen.getByText(en.loginModeEmail))
-    expect(screen.getByLabelText(en.loginEmail)).toBeTruthy()
-    vi.unstubAllGlobals()
-  })
-
-  it('shows a GeoCRM sign-in validation error without calling the origin', async () => {
-    const { face } = scriptedFace()
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-    const GeoCrmConfig = Schema.object({
-      apiKeyEnv: Schema.string().role('credential-ref'),
-    })
-    const namespace: SettingsNamespaceView = {
-      ns: 'llm-geocrm',
-      schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
-      value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
-      applies: 'live',
-      secrets: [],
-      revision: 0,
-    }
-    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
-    render(<ProviderEditor
-      provider="geocrm"
-      displayName="GeoCRM"
-      namespace={namespace}
-      schema={settingsSchema}
-      settingsPath={[]}
-      operations={operationsWith(face)}
-      t={t}
-      readOnly={false}
-      onClose={() => {}}
-    />)
-    fireEvent.click(screen.getByText(en.signIn))
-    await screen.findByText(en.employeeIdRequired)
-    fireEvent.change(screen.getByLabelText(en.employeeId), { target: { value: 'ab' } })
-    fireEvent.click(screen.getByText(en.signIn))
-    await screen.findByText(en.employeeIdInvalid)
-    fireEvent.click(screen.getByText(en.loginModeEmail))
-    fireEvent.click(screen.getByText(en.signIn))
-    await screen.findByText(en.emailRequired)
-    fireEvent.change(screen.getByLabelText(en.loginEmail), { target: { value: 'ada@example.com' } })
-    fireEvent.click(screen.getByText(en.signIn))
-    await screen.findByText(en.passwordRequired)
-    expect(fetchMock).not.toHaveBeenCalled()
-    vi.unstubAllGlobals()
+    await screen.findByText(en.signOut)
+    expect(screen.queryByLabelText(en.employeeId)).toBeNull()
+    fireEvent.click(screen.getByText(en.signOut))
+    await waitFor(() => { expect(unset).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN') })
+    expect(unset).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH')
   })
 
   it('rejects an invalid draft before writing', async () => {
