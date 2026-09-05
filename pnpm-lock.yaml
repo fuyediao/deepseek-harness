@@ -1970,6 +1970,9 @@ importers:
       '@deepseek-ai/dsh-app-boot':
         specifier: workspace:^
         version: link:../../boot/app-boot
+      '@deepseek-ai/dsh-client-file-upload':
+        specifier: workspace:^
+        version: link:../../client/file-upload
       '@deepseek-ai/dsh-cmdline':
         specifier: workspace:^
         version: link:../../boot/cmdline

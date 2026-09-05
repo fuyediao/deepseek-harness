@@ -16,7 +16,7 @@ Status: implemented
 
 ### `@deepseek-ai/dsh-electron-app`：桌面 bundle，不监听端口
 
-一个新 bundle 复刻 `dsh-web-app` 的浏览器 Client 名单（`dsh-client-connection`、`dsh-client-modules`、每个 `ui-*` 包、各 API controller、`agent-presets`），但省去 Web 专属的 host 行（`webserver`、`web-startup`、`frontend-static`、`client-hmr`），改为挂载 `electron-startup`／`electron-runtime`。`electron-runtime` 启动 `ElectronIpcHost`——一个只接受一个连接的 `net` socket 监听器——把帧分发给 `connection.createSharedFetchHandler('/api')`、`clientModules.resolveResource(url)` 与 `ctx.get('typertGateway')?.wireStream`（与 WebSocket mux、已归档的 WebWorker 预览早已共用的同一套载体无关流驱动器）。除非带 `--no-window`（`electron-startup` 唯一的 flag），随后会拉起构建好的 `@deepseek-ai/dsh-electron-shell`（Electron 主进程），在其环境变量中传入 IPC 路径与解析出的 `@deepseek-ai/dsh-web-frontend` dist 根目录，并把子进程的退出码转发给 `ctx.appExit`。
+一个新 bundle 复刻 `dsh-web-app` 的浏览器 Client 名单（`dsh-client-connection`、`dsh-client-modules`、`dsh-client-file-upload`、每个 `ui-*` 包、各 API controller、`agent-presets`），但省去 Web 专属的 host 行（`webserver`、`web-startup`、`frontend-static`、`client-hmr`），改为挂载 `electron-startup`／`electron-runtime`。`electron-runtime` 启动 `ElectronIpcHost`——一个只接受一个连接的 `net` socket 监听器——把帧分发给 `connection.createSharedFetchHandler('/api')`、`clientModules.resolveResource(url)` 与 `ctx.get('typertGateway')?.wireStream`（与 WebSocket mux、已归档的 WebWorker 预览早已共用的同一套载体无关流驱动器）。除非带 `--no-window`（`electron-startup` 唯一的 flag），随后会拉起构建好的 `@deepseek-ai/dsh-electron-shell`（Electron 主进程），在其环境变量中传入 IPC 路径与解析出的 `@deepseek-ai/dsh-web-frontend` dist 根目录，并把子进程的退出码转发给 `ctx.appExit`。
 
 ### `@deepseek-ai/dsh-electron-ipc`：wire 协议
 
@@ -64,3 +64,4 @@ Electron 主进程连接该 socket，注册一个特权 `dsh-app://` 自定义�
 - Windows 打包（`electron-builder`，一个把 `@deepseek-ai/dsh` 的提升式 Node 配置树与构建好的前端、Electron 壳一并打入的 NSIS 安装程序）在本次首发中未签名且无自动更新；首次运行预期会出现操作系统安全提示，直到后续变更加入代码签名为止。
 - 从 Electron 父进程（Cursor、VS Code）拉起窗口时，必须去掉 `ELECTRON_RUN_AS_NODE`、`ELECTRON_NO_ASAR` 和 `CHROME_CRASHPAD_PIPE_NAME`。否则 `electron.exe` 会按 Node 运行，或卡在父进程的 crashpad 管道上，于是 Host 只打印 `ipc ready` 却不出现窗口。
 - `dsh-electron-app` 必须声明 `@deepseek-ai/dsh-web-frontend`，否则在 pnpm 隔离下 `require.resolve` 看不到构建好的 dist。缺这个依赖时 Host 会打出 `ipc ready`，随后 fiber 静默失败，看起来像卡住。
+- 桌面 patch 与 `connection` 一起挂载 `file-upload`。`session-controller` 注入 `fileUploads`；缺少该行时 Host 会打印 `ipc ready`，然后以 `waiting for service: fileUploads` 退出。

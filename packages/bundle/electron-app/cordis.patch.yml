@@ -165,6 +165,11 @@
     - id: connection
       name: '@deepseek-ai/dsh-client-connection'
 
+    # Raw Blob and ReadableStream uploads run independently of Connection's
+    # RPC and generation service. session-controller injects fileUploads.
+    - id: file-upload
+      name: '@deepseek-ai/dsh-client-file-upload'
+
     - id: api-remotes
       name: '@deepseek-ai/dsh-api-remotes'
 

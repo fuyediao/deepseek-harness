@@ -7,8 +7,10 @@
  */
 
 import { EventEmitter } from 'node:events'
+import { readFileSync } from 'node:fs'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createConnection } from 'node:net'
+import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -235,5 +237,12 @@ describe('electron-app runtime glue', () => {
     socket.destroy()
 
     await ctx.fiber.dispose()
+  })
+
+  it('mounts file-upload so session-controller can activate', () => {
+    const patch = readFileSync(fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8')
+    expect(patch).toContain('id: file-upload')
+    expect(patch).toContain("name: '@deepseek-ai/dsh-client-file-upload'")
+    expect(patch).toContain('id: session-controller')
   })
 })
