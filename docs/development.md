@@ -96,9 +96,11 @@ The real DeepSeek adapter and key-backed agent demos read credentials from the e
 ```sh
 DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
+GEOCRM_BASE_URL=https://api.example.com # optional desktop GeoCRM origin
+# GEOCRM_DEPLOYMENT_DOMAIN=example.com # optional; same host as VITE_DEPLOYMENT_DOMAIN
 ```
 
-`DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
+`DEEPSEEK_BASE_URL` is optional and defaults to the public API. `GEOCRM_BASE_URL` or `GEOCRM_DEPLOYMENT_DOMAIN` select the desktop GeoCRM API; the default is `http://127.0.0.1:3001`. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
 
 ### Git integrations
 

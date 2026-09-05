@@ -2,10 +2,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   EMPLOYEE_ID_PATTERN,
+  GEOCRM_DEFAULT_ORIGIN,
   normalizeEmployeeId,
   normalizeGeoCrmOrigin,
   parsePublicError,
+  resolveCardOrigin,
   probeAccess,
+  refreshCredentialRef,
   resolveEmployeeEmail,
   signInWithPassword,
 } from '../src/client/geocrm-auth.ts'
@@ -24,6 +27,25 @@ describe('normalizeEmployeeId', () => {
     expect(normalizeEmployeeId('')).toBe('')
     expect(normalizeEmployeeId('0')).toBe('PS0000')
     expect(EMPLOYEE_ID_PATTERN.test('PS0001')).toBe(true)
+  })
+})
+
+describe('refreshCredentialRef', () => {
+  it('rewrites a _TOKEN suffix and otherwise appends _REFRESH', () => {
+    expect(refreshCredentialRef('GEOCRM_HARNESS_TOKEN')).toBe('GEOCRM_HARNESS_REFRESH')
+    expect(refreshCredentialRef('CUSTOM')).toBe('CUSTOM_REFRESH')
+  })
+})
+
+describe('resolveCardOrigin', () => {
+  it('prefers a non-local composition origin over the card field', () => {
+    expect(resolveCardOrigin('https://api.vps.example', 'http://127.0.0.1:3001'))
+      .toBe('https://api.vps.example')
+    expect(resolveCardOrigin(GEOCRM_DEFAULT_ORIGIN, 'http://127.0.0.1:4000'))
+      .toBe('http://127.0.0.1:4000')
+    expect(resolveCardOrigin(undefined, undefined)).toBe(GEOCRM_DEFAULT_ORIGIN)
+    expect(resolveCardOrigin('', '')).toBe(GEOCRM_DEFAULT_ORIGIN)
+    expect(resolveCardOrigin(GEOCRM_DEFAULT_ORIGIN, undefined)).toBe(GEOCRM_DEFAULT_ORIGIN)
   })
 })
 
@@ -88,16 +110,17 @@ describe('resolveEmployeeEmail', () => {
 })
 
 describe('signInWithPassword', () => {
-  it('returns the access token', async () => {
+  it('returns the access token and refresh token', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
       ok: true,
       text: () => Promise.resolve(JSON.stringify({
         access_token: 'jwt',
+        refresh_token: 'refresh',
         user: { email: 'ada@example.com' },
       })),
     })))
     await expect(signInWithPassword('http://127.0.0.1:3001', 'Ada@Example.com', 'secret', new AbortController().signal))
-      .resolves.toEqual({ accessToken: 'jwt', email: 'ada@example.com' })
+      .resolves.toEqual({ accessToken: 'jwt', refreshToken: 'refresh', email: 'ada@example.com' })
   })
 
   it('falls back to the submitted email when the user object is absent', async () => {

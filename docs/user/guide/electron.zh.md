@@ -8,7 +8,7 @@
 
 ## 配置模型
 
-打开**设置 → 模型**，用 GeoCRM 工号或邮箱登录（或粘贴会话令牌），把源站保持为你的 GeoCRM API（本地进程为 `http://127.0.0.1:3001`），然后保存。供应商 API 密钥留在 GeoCRM 设置中。账号需要 `desktop_agent`。`geocrm` 路由与 GeoCRM CRM 工具会立即可用，不需要重启应用。
+在调用目录的 `.env` 里写 GeoCRM API 源站：`GEOCRM_BASE_URL=https://api.example.com` 或 `GEOCRM_DEPLOYMENT_DOMAIN=example.com`（与 GeoCRM Electron 的 `VITE_DEPLOYMENT_DOMAIN` 使用同一主机名）。没有该文件时保持 `http://127.0.0.1:3001`。打开**设置 → 模型**，用 GeoCRM 工号或邮箱登录（或粘贴会话令牌），然后保存。供应商 API 密钥留在 GeoCRM 设置中。账号需要 `desktop_agent`。密码登录会保持会话；Host 会在访问 JWT 过期前刷新。`geocrm` 路由与 GeoCRM CRM 工具会立即可用，不需要重启应用。
 
 [模型配置指南](./providers.zh.md)介绍 Web UI 的 DeepSeek 卡片以及自定义 OpenAI 兼容端点。
 

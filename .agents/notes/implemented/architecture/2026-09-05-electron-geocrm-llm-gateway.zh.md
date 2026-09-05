@@ -10,11 +10,11 @@ Status: implemented
 
 ## Decision
 
-`@deepseek-ai/dsh-llm-geocrm` 拥有 `geocrm` 路由。它使用 GeoCRM 已有的 harness 约定，并且不修改 GeoCRM 仓库中的任何文件。
+`@deepseek-ai/dsh-llm-geocrm` 拥有 `geocrm` 路由。它使用 GeoCRM 已有的 harness 约定。密码登录会同时写入 `GEOCRM_HARNESS_TOKEN` 与 `GEOCRM_HARNESS_REFRESH`。在访问 JWT 距离 `exp` 不足五分钟时，Host 会调用 GeoCRM `POST /auth/refresh` 并写回轮换后的一对令牌。这是本 Host 需要的唯一 GeoCRM 增补：GoTrue 刷新必须使用服务端 anon key，而本仓库不携带该密钥。
 
 `electron` profile 覆盖层禁用 `llm-deepseek` 与 `web-search-deepseek`，插入 `llm-geocrm`，并把 `agent-default-model` 设为 `provider: geocrm` / `model: deepseek:deepseek-v4-flash`。`dsh web` 与 headless 仍使用 `deepseek-official`。
 
-选择器 id 是复合的 `provider:model` 值，因为 GeoCRM 目录 id 可能在不同 slug 之间碰撞。适配器把 slug 作为 `x-geocrm-provider` 发送，并把供应商 id 作为 `model` 发送。模型卡片（`llm-geocrm`）把会话令牌存在 `GEOCRM_HARNESS_TOKEN` 下，把源站存在 `baseURL` 下（默认 `http://127.0.0.1:3001`）。
+选择器 id 是复合的 `provider:model` 值，因为 GeoCRM 目录 id 可能在不同 slug 之间碰撞。适配器把 slug 作为 `x-geocrm-provider` 发送，并把供应商 id 作为 `model` 发送。模型卡片（`llm-geocrm`）把会话令牌存在 `GEOCRM_HARNESS_TOKEN` 下。API 源站来自启动环境（`GEOCRM_BASE_URL`，或把 `GEOCRM_DEPLOYMENT_DOMAIN` 写成 `https://api.{domain}`），然后是显式的设置 `baseURL`，最后是 `http://127.0.0.1:3001`。
 
 `packages/client/ui-settings-models` 把 `llm-geocrm` 映射到策划过的编辑器：GeoCRM 工号或邮箱登录（公开的 `POST /auth/password` 与 `POST /auth/public/resolve-employee-id`）、只写令牌粘贴回退、可自定义源站，以及共享的模型列表编辑器，以便“获取”调用已注册的发现。登录后卡片会探测 `POST /ai/harness/tools/list_my_access`，并显示是否授予 `desktop_agent`。
 
@@ -22,8 +22,8 @@ Status: implemented
 
 ## Testing
 
-- `packages/llm/llm-geocrm/tests` 覆盖目录 id、HTTP 映射、Responses 翻译、适配器 fetch 以及插件 `apply`。
-- `packages/client/ui-settings-models/tests` 覆盖 GeoCRM 占位符、登录 HTTP 与 `desktop_agent` 探测。
+- `packages/llm/llm-geocrm/tests` 覆盖目录 id、HTTP 映射、Responses 翻译、适配器 fetch、插件 `apply` 以及会话刷新。
+- `packages/client/ui-settings-models/tests` 覆盖 GeoCRM 占位符、登录 HTTP、refresh 令牌持久化与 `desktop_agent` 探测。
 - `packages/llm/tool-geocrm/tests` 覆盖连接解析、令牌解析与 harness 工具 POST。
 
 ## Alternatives considered
@@ -32,7 +32,11 @@ Status: implemented
 
 **复用 `llm-pi-ai`，配置 `openai-responses` 且 `baseURL: …/ai/harness`。** 否决：pi-ai 使用官方 OpenAI Responses SDK，它期望 `event:` 行与 token 增量。GeoCRM 为完整回合写入 `data:` JSON，并且每回合最多一次工具调用。
 
-**在 GeoCRM 上增加 `/v1` 以便现有适配器可用。** 否决：GeoCRM 树不在范围内；已有的 Electron Codex 宿主已经用 `GEOCRM_HARNESS_TOKEN` 与 `x-geocrm-provider` POST `{apiBase}/ai/harness/responses`。
+**在 GeoCRM 上增加 `/v1` 以便现有适配器可用。** 否决：已有的 Electron Codex 宿主已经用 `GEOCRM_HARNESS_TOKEN` 与 `x-geocrm-provider` POST `{apiBase}/ai/harness/responses`。
+
+**让本 Host 带着复制的 anon key 直接刷新 GoTrue。** 否决：额外的操作者配置。`POST /auth/refresh` 已经持有 anon key。
+
+**只在访问 JWT 仍有效时用它当作 GoTrue `apikey` 刷新。** 否决：隔夜空闲仍会强制重新登录。
 
 **把适配器放进 `dsh-electron-app`。** 否决：适配器属于 `packages/llm/*`，这样 Host LLM 缝仍是注册点，并且该包保持自己的 100% `src` 覆盖。
 
@@ -42,4 +46,4 @@ Status: implemented
 - 每个 electron 会话都会继承 GeoCRM CRM 工具。GeoCRM ACL 会拒绝已登录用户不能执行的读与写。隔离覆盖层禁用 `tool-geocrm`，使 e2e 目录不依赖该源站。
 - 桌面 profile 上的网页搜索没有 DeepSeek 搜索提供方。`web_fetch` 仍使用 `http`。
 - 复合模型 id（`deepseek:deepseek-v4-flash`）是模型选择器与 `agent-default-model` 存储的值。裸的碰撞 id 会被拒绝。
-- 过期 JWT 会在下一次请求以 `AUTH` 失败。GeoCRM 不会为本 Host 刷新令牌。
+- Host 通过 `POST /auth/refresh` 保持密码登录会话。没有 refresh 令牌的粘贴访问 JWT 仍会过期。被撤销的 refresh 令牌会在下一次请求以 `AUTH` 失败。

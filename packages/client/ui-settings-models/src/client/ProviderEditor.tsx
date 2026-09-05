@@ -32,6 +32,7 @@ import {
 } from './DeepSeekModelsEditor.tsx'
 import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
+import { GEOCRM_DEFAULT_ORIGIN, resolveCardOrigin } from './geocrm-auth.ts'
 import { GeoCrmSignIn } from './GeoCrmSignIn.tsx'
 import { ModelListEditor } from './ModelListEditor.tsx'
 import { deriveKeyRef, protocolChoices } from './store.ts'
@@ -45,9 +46,6 @@ type EditorLayout = 'deepseek' | 'geocrm' | 'pi-ai' | 'unknown'
 
 /** The public DeepSeek endpoint shown as the deepseek base-URL placeholder. */
 const DEEPSEEK_PUBLIC_BASE_URL = 'https://api.deepseek.com'
-
-/** Local GeoCRM API origin shown as the geocrm base-URL placeholder. */
-const GEOCRM_DEFAULT_BASE_URL = 'http://127.0.0.1:3001'
 
 /** Props of {@link ProviderEditor}. */
 export interface ProviderEditorProps {
@@ -359,7 +357,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
         {family === 'geocrm'
           ? (
             <GeoCrmSignIn
-              origin={probeBaseURL ?? GEOCRM_DEFAULT_BASE_URL}
+              origin={resolveCardOrigin(
+                stringAt(schema.getPath(namespace.base, settingsPath), 'baseURL'),
+                probeBaseURL,
+              )}
               keyRef={keyRef}
               operations={operations}
               t={t}
@@ -424,7 +425,8 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                 placeholder={family === 'deepseek'
                   ? DEEPSEEK_PUBLIC_BASE_URL
                   : family === 'geocrm'
-                    ? GEOCRM_DEFAULT_BASE_URL
+                    ? stringAt(schema.getPath(namespace.base, settingsPath), 'baseURL')
+                      ?? GEOCRM_DEFAULT_ORIGIN
                     : stringAt(fallback, 'baseURL') ?? t('baseUrlDefault')}
                 aria-label={t('baseUrl')}
                 disabled={disabled}

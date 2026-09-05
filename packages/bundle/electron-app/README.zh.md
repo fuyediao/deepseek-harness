@@ -43,7 +43,7 @@ dsh electron --no-window
 
 ### 模型页
 
-桌面模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。用 GeoCRM 工号或邮箱登录（或粘贴会话令牌），并把 `baseURL` 保持为 GeoCRM API 源站（本地 `geocrm-api` 为 `http://127.0.0.1:3001`）。供应商 API 密钥留在 GeoCRM 设置中。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该用户身份调用 GeoCRM Harness CRM 工具。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
+桌面模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。在调用目录的 `.env` 里设置 GeoCRM API 源站（`GEOCRM_BASE_URL` 或 `GEOCRM_DEPLOYMENT_DOMAIN`）；默认是本地 `geocrm-api` 的 `http://127.0.0.1:3001`。用 GeoCRM 工号或邮箱登录（或粘贴会话令牌）。供应商 API 密钥留在 GeoCRM 设置中。密码登录会通过 `POST /auth/refresh` 保持会话。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该用户身份调用 GeoCRM Harness CRM 工具。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
 
 -----
 

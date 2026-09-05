@@ -2,15 +2,19 @@
  * Register GeoCRM first-party Harness tools on `ctx.tools`. Each call posts
  * to `{origin}/ai/harness/tools/{name}` with `GEOCRM_HARNESS_TOKEN`. Origin
  * and token reference prefer the live `llm-geocrm` settings section when that
- * namespace is registered, so the Models card origin applies here too.
+ * namespace is registered. A launch-environment origin wins over a stored
+ * `baseURL`.
  * @module @deepseek-ai/dsh-tool-geocrm
  */
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-import { DEFAULT_BASE_URL, normalizeGeoCrmOrigin } from '@deepseek-ai/dsh-llm-geocrm'
+import {
+  DEFAULT_BASE_URL,
+  resolveGeoCrmOrigin,
+  resolveLiveSessionToken,
+} from '@deepseek-ai/dsh-llm-geocrm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-settings'
 import { GEOCRM_TOOLS } from './catalog.ts'
@@ -64,33 +68,34 @@ export function resolveConnection(ctx: Context, config: Config): GeoCrmToolConne
     : {}
   const rawBase = typeof fromSettings.baseURL === 'string' && fromSettings.baseURL.length > 0
     ? fromSettings.baseURL
-    : (config.baseURL ?? DEFAULT_BASE_URL)
+    : config.baseURL
   const apiKeyEnv = typeof fromSettings.apiKeyEnv === 'string' && fromSettings.apiKeyEnv.length > 0
     ? fromSettings.apiKeyEnv
     : (config.apiKeyEnv ?? DEFAULT_API_KEY_ENV)
-  if (rawBase.length === 0) throw new Error('tool-geocrm: baseURL must be a non-empty origin')
-  return { baseURL: normalizeGeoCrmOrigin(rawBase), apiKeyEnv }
+  return {
+    baseURL: resolveGeoCrmOrigin({ ...rawBase === undefined ? {} : { baseURL: rawBase } }, launchEnvironmentOf(ctx)),
+    apiKeyEnv,
+  }
 }
 
 /**
- * Resolve the GeoCRM session token for one call.
+ * Resolve the GeoCRM session token for one call, rotating it when needed.
  * @param ctx - host context that may carry `credentials`.
- * @param apiKeyEnv - credential reference name.
+ * @param connection - origin and access-token reference.
  * @returns a usable Bearer token.
  */
-export async function resolveToken(ctx: Context, apiKeyEnv: string): Promise<string> {
-  const ref = credentialRef(apiKeyEnv)
+export async function resolveToken(ctx: Context, connection: GeoCrmToolConnection): Promise<string> {
   const credentials = ctx.get('credentials')
-  if (credentials !== undefined) {
-    const hit = await credentials.resolve(ref)
-    if (hit !== undefined && hit.value.length > 0) return hit.value
-  } else {
-    const ambient = launchEnvironmentOf(ctx).get(ref)
-    if (ambient !== undefined && ambient.value.length > 0) return ambient.value
-  }
+  const token = await resolveLiveSessionToken({
+    origin: connection.baseURL,
+    apiKeyEnv: connection.apiKeyEnv,
+    ...credentials === undefined ? {} : { store: credentials },
+    ambient: name => launchEnvironmentOf(ctx).get(name)?.value,
+  })
+  if (token !== undefined && token.length > 0) return token
   throw new Error(
-    `tool-geocrm: no GeoCRM session token for ${apiKeyEnv}; sign in on the desktop Models page `
-    + `or export ${apiKeyEnv} in the launching environment`,
+    `tool-geocrm: no GeoCRM session token for ${connection.apiKeyEnv}; sign in on the desktop Models page `
+    + `or export ${connection.apiKeyEnv} in the launching environment`,
   )
 }
 
@@ -118,7 +123,7 @@ export function apply(ctx: Context, config: Config): void {
       }),
       async execute(args, exec) {
         const connection = resolveConnection(ctx, config)
-        const token = await resolveToken(ctx, connection.apiKeyEnv)
+        const token = await resolveToken(ctx, connection)
         return callHarnessTool(
           connection.baseURL,
           token,

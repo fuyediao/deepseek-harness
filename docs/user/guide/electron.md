@@ -8,7 +8,7 @@ The desktop app uses the same conversation view, model settings, and session his
 
 ## Configure a model
 
-Open **Settings → Models**, sign in with your GeoCRM employee ID or email (or paste a session token), keep the origin at your GeoCRM API (`http://127.0.0.1:3001` for a local process), and save. Vendor API keys stay in GeoCRM Settings. The account needs `desktop_agent`. The `geocrm` route and GeoCRM CRM tools become usable immediately without restarting the app.
+Put the GeoCRM API origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (the same host GeoCRM Electron uses as `VITE_DEPLOYMENT_DOMAIN`). A missing file keeps `http://127.0.0.1:3001`. Open **Settings → Models**, sign in with your GeoCRM employee ID or email (or paste a session token), and save. Vendor API keys stay in GeoCRM Settings. The account needs `desktop_agent`. A password sign-in stays signed in; the Host refreshes the session before the access JWT expires. The `geocrm` route and GeoCRM CRM tools become usable immediately without restarting the app.
 
 The [model configuration guide](./providers.md) covers the Web UI DeepSeek card and custom OpenAI-compatible endpoints.
 

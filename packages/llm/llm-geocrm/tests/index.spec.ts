@@ -4,7 +4,19 @@ import LlmRuntime from '@deepseek-ai/dsh-llm'
 import * as LlmGeocrm from '../src/index.ts'
 import { DEFAULT_BASE_URL, DEFAULT_CONTEXT_WINDOW, DEFAULT_STREAM_IDLE_TIMEOUT_MS } from '../src/adapter.ts'
 import { DEFAULT_MODELS } from '../src/catalog.ts'
+import * as session from '../src/session.ts'
 import { mockGeoCrm } from './mock-server.ts'
+
+/**
+ * Build an unsigned JWT with the given payload.
+ * @param payload - claims to encode.
+ * @returns a compact JWT.
+ */
+function jwtWith(payload: unknown): string {
+  const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
+  return `${header}.${body}.sig`
+}
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -28,6 +40,12 @@ describe('resolveAdapterOptions', () => {
       .toThrow(/streamIdleTimeoutMs/)
     expect(() => LlmGeocrm.resolveAdapterOptions({ baseURL: '' }))
       .toThrow(/baseURL/)
+    expect(LlmGeocrm.resolveAdapterOptions(
+      { baseURL: 'http://ignored' },
+      { get: (name) => name === 'GEOCRM_BASE_URL'
+        ? { value: 'https://api.vps.example/', source: 'project-env' as const }
+        : undefined },
+    ).baseURL).toBe('https://api.vps.example')
   })
 })
 
@@ -150,5 +168,62 @@ describe('apply', () => {
     await ctx.plugin(LlmRuntime)
     await expect(ctx.plugin(LlmGeocrm, { baseURL: '' })).rejects.toThrow(/baseURL/)
     await ctx.fiber.dispose()
+  })
+
+  it('maps an expired session to AUTH and rethrows other refresh failures', async () => {
+    const expired = jwtWith({ exp: 1 })
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: false,
+      status: 401,
+      text: () => Promise.resolve(JSON.stringify({ error: 'Invalid refresh token' })),
+    })))
+    const ctx = new Context()
+    ctx.provide('credentials', {
+      resolve: (ref: string) => Promise.resolve({
+        value: String(ref).endsWith('_REFRESH') ? 'old-refresh' : expired,
+      }),
+    } as never)
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LlmGeocrm, {})
+    try {
+      const chunks: unknown[] = []
+      for await (const chunk of ctx.llm.stream({
+        provider: 'geocrm',
+        model: 'deepseek:deepseek-v4-flash',
+        messages: [],
+      })) {
+        chunks.push(chunk)
+      }
+      expect(chunks.at(-1)).toMatchObject({
+        type: 'finish',
+        reason: { kind: 'error', failure: { code: 'AUTH' } },
+      })
+    } finally {
+      await ctx.fiber.dispose()
+    }
+
+    vi.spyOn(session, 'resolveLiveSessionToken').mockRejectedValueOnce(new Error('boom'))
+    const other = new Context()
+    other.provide('credentials', {
+      resolve: () => Promise.resolve({ value: 'cred-jwt' }),
+    } as never)
+    await other.plugin(LlmRuntime)
+    await other.plugin(LlmGeocrm, {})
+    try {
+      const chunks: unknown[] = []
+      for await (const chunk of other.llm.stream({
+        provider: 'geocrm',
+        model: 'deepseek:deepseek-v4-flash',
+        messages: [],
+      })) {
+        chunks.push(chunk)
+      }
+      expect(chunks.at(-1)).toMatchObject({
+        type: 'finish',
+        reason: { kind: 'error' },
+      })
+    } finally {
+      await other.fiber.dispose()
+    }
   })
 })

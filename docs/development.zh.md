@@ -100,9 +100,11 @@ pnpm run build
 ```sh
 DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
+GEOCRM_BASE_URL=https://api.example.com # optional desktop GeoCRM origin
+# GEOCRM_DEPLOYMENT_DOMAIN=example.com # optional; same host as VITE_DEPLOYMENT_DOMAIN
 ```
 
-`DEEPSEEK_BASE_URL` 可选，默认为公开 API。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
+`DEEPSEEK_BASE_URL` 可选，默认为公开 API。`GEOCRM_BASE_URL` 或 `GEOCRM_DEPLOYMENT_DOMAIN` 选择桌面 GeoCRM API；默认是 `http://127.0.0.1:3001`。请勿提交真实凭证。未设置 `DEEPSEEK_API_KEY` 时，真实 API 的 e2e 套件会自动跳过。
 
 ### Git 集成
 

@@ -14,7 +14,7 @@ import z from '@deepseek-ai/schemastery'
 import { assertUsableApiKey, LlmError, resolveRetryPolicy, RetryPolicySchema } from '@deepseek-ai/dsh-llm'
 import type { RetryPolicyConfig } from '@deepseek-ai/dsh-llm'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
-import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
+import { launchEnvironmentOf, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import type {} from '@deepseek-ai/dsh-settings'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { deepEqualJson } from '@deepseek-ai/dsh-util-values'
@@ -27,6 +27,9 @@ import {
 import type { GeoCrmConnectionOptions } from './adapter.ts'
 import { DEFAULT_MODELS, resolveAdvisoryModels } from './catalog.ts'
 import type { GeoCrmCatalogModel } from './catalog.ts'
+import { normalizeGeoCrmOrigin } from './http.ts'
+import { resolveGeoCrmOrigin } from './origin.ts'
+import { GeoCrmSessionError, resolveLiveSessionToken } from './session.ts'
 
 export {
   DEFAULT_BASE_URL,
@@ -48,6 +51,27 @@ export {
 export type { GeoCrmCatalogEntry, GeoCrmCatalogModel } from './catalog.ts'
 export { geocrmHttpErrorCode, normalizeGeoCrmOrigin, parseGeoCrmErrorBody } from './http.ts'
 export type { GeoCrmErrorBody } from './http.ts'
+export {
+  BASE_URL_ENV,
+  DEPLOYMENT_DOMAIN_ENV,
+  originFromDeploymentDomain,
+  resolveGeoCrmOrigin,
+} from './origin.ts'
+export type { GeoCrmOriginConfig } from './origin.ts'
+export {
+  ACCESS_REFRESH_LEEWAY_MS,
+  GeoCrmSessionError,
+  jwtExpiryMs,
+  refreshCredentialRef,
+  refreshGeoCrmSession,
+  resolveLiveSessionToken,
+  shouldRefreshAccessToken,
+} from './session.ts'
+export type {
+  GeoCrmRefreshedSession,
+  GeoCrmSessionStore,
+  ResolveLiveSessionTokenRequest,
+} from './session.ts'
 export {
   chunksFromGeoCrmEvents,
   instructionsOf,
@@ -80,7 +104,11 @@ const PROVIDER = 'geocrm'
 export interface Config {
   /** Credential reference resolved per request; defaults to `GEOCRM_HARNESS_TOKEN`. */
   apiKeyEnv?: string
-  /** GeoCRM API origin; defaults to `http://127.0.0.1:3001`. */
+  /**
+   * GeoCRM API origin. Falls back to `$GEOCRM_BASE_URL`, then
+   * `$GEOCRM_DEPLOYMENT_DOMAIN` as `https://api.{domain}`, then
+   * `http://127.0.0.1:3001`. A launch-environment origin wins over this field.
+   */
   baseURL?: string
   /** Advisory models shown by discovery consumers; defaults to the static flagships. */
   models?: GeoCrmCatalogModel[]
@@ -117,9 +145,13 @@ export type ResolvedGeoCrmOptions = GeoCrmConnectionOptions
  * facts. Programmatic construction may bypass Schemastery normalization, so
  * every default and bound is re-judged here.
  * @param config - raw plugin config or resolved settings snapshot.
+ * @param environment - launch snapshot; origin env vars are read from here.
  * @returns validated connection facts plus the credential reference.
  */
-export function resolveAdapterOptions(config: Config): ResolvedGeoCrmOptions {
+export function resolveAdapterOptions(
+  config: Config,
+  environment?: Pick<LaunchEnvironmentSnapshot, 'get'>,
+): ResolvedGeoCrmOptions {
   if (config.defaultContextWindow !== undefined
     && (!Number.isInteger(config.defaultContextWindow) || config.defaultContextWindow <= 0)) {
     throw new Error('llm-geocrm: defaultContextWindow must be a positive integer')
@@ -132,8 +164,10 @@ export function resolveAdapterOptions(config: Config): ResolvedGeoCrmOptions {
       `llm-geocrm: streamIdleTimeoutMs must be a positive finite number no greater than ${String(MAX_TIMER_DELAY_MS)}`,
     )
   }
-  const baseURL = config.baseURL ?? DEFAULT_BASE_URL
-  if (baseURL.length === 0) throw new Error('llm-geocrm: baseURL must be a non-empty origin')
+  if (config.baseURL !== undefined && config.baseURL.length === 0) {
+    throw new Error('llm-geocrm: baseURL must be a non-empty origin')
+  }
+  const baseURL = resolveGeoCrmOrigin(config, environment)
   return {
     apiKeyEnv: credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV),
     baseURL,
@@ -151,6 +185,7 @@ export function resolveAdapterOptions(config: Config): ResolvedGeoCrmOptions {
  * @returns nothing; registrations dispose with the fiber.
  */
 export function apply(ctx: Context, config: Config): void {
+  const environment = launchEnvironmentOf(ctx)
   let current: () => Config = () => config
   let lastRaw: Config | undefined
   let lastGood: ResolvedGeoCrmOptions | undefined
@@ -158,7 +193,7 @@ export function apply(ctx: Context, config: Config): void {
     const raw = current()
     if (raw === lastRaw && lastGood !== undefined) return lastGood
     try {
-      const next = resolveAdapterOptions(raw)
+      const next = resolveAdapterOptions(raw, environment)
       lastRaw = raw
       lastGood = next
       return next
@@ -171,18 +206,32 @@ export function apply(ctx: Context, config: Config): void {
     }
   }
   options()
+  const entry: Config = {
+    apiKeyEnv: config.apiKeyEnv,
+    baseURL: resolveGeoCrmOrigin(config, environment),
+    models: config.models,
+    defaultContextWindow: config.defaultContextWindow,
+    streamIdleTimeoutMs: config.streamIdleTimeoutMs,
+    retryPolicy: config.retryPolicy,
+  }
+  current = () => entry
 
   const resolveApiKey = async (connection: ResolvedGeoCrmOptions): Promise<string> => {
     const ref = connection.apiKeyEnv
     const credentials = ctx.get('credentials')
-    if (credentials !== undefined) {
-      const hit = await credentials.resolve(ref)
-      if (hit !== undefined) return assertUsableApiKey(hit.value, 'llm-geocrm', ref)
-    } else {
-      const ambient = launchEnvironmentOf(ctx).get(ref)
-      if (ambient !== undefined && ambient.value.length > 0) {
-        return assertUsableApiKey(ambient.value, 'llm-geocrm', ref)
+    try {
+      const token = await resolveLiveSessionToken({
+        origin: normalizeGeoCrmOrigin(connection.baseURL),
+        apiKeyEnv: ref,
+        ...credentials === undefined ? {} : { store: credentials },
+        ambient: name => launchEnvironmentOf(ctx).get(name)?.value,
+      })
+      if (token !== undefined) return assertUsableApiKey(token, 'llm-geocrm', ref)
+    } catch (error) {
+      if (error instanceof GeoCrmSessionError) {
+        throw new LlmError(error.message, error.code)
       }
+      throw error
     }
     throw new LlmError(
       `llm-geocrm: no GeoCRM session token for provider route "${PROVIDER}"; store ${ref} through the credentials`
@@ -206,7 +255,7 @@ export function apply(ctx: Context, config: Config): void {
   }
 
   ctx.inject(['settings'], (settingsCtx) => {
-    settingsCtx.settings.installSection(ctx, NS, Config, config, {
+    settingsCtx.settings.installSection(ctx, NS, Config, entry, {
       setSource: (source) => {
         current = source
       },

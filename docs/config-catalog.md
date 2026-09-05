@@ -1045,7 +1045,11 @@ Requires: `llm`
 export interface Config {
   /** Credential reference resolved per request; defaults to `GEOCRM_HARNESS_TOKEN`. */
   apiKeyEnv?: string
-  /** GeoCRM API origin; defaults to `http://127.0.0.1:3001`. */
+  /**
+   * GeoCRM API origin. Falls back to `$GEOCRM_BASE_URL`, then
+   * `$GEOCRM_DEPLOYMENT_DOMAIN` as `https://api.{domain}`, then
+   * `http://127.0.0.1:3001`. A launch-environment origin wins over this field.
+   */
   baseURL?: string
   /** Advisory models shown by discovery consumers; defaults to the static flagships. */
   models?: GeoCrmCatalogModel[]
@@ -1074,7 +1078,7 @@ export interface GeoCrmCatalogModel {
 
 Depends on: [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-Source: [`packages/llm/llm-geocrm/src/index.ts:80`](../packages/llm/llm-geocrm/src/index.ts)
+Source: [`packages/llm/llm-geocrm/src/index.ts:104`](../packages/llm/llm-geocrm/src/index.ts)
 
 <a id="deepseek-aidsh-llm-pi-ai"></a>
 
@@ -2778,7 +2782,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/llm/tool-geocrm/src/index.ts:32`](../packages/llm/tool-geocrm/src/index.ts)
+Source: [`packages/llm/tool-geocrm/src/index.ts:36`](../packages/llm/tool-geocrm/src/index.ts)
 
 <a id="deepseek-aidsh-tool-goal"></a>
 

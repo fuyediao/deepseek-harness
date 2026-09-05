@@ -999,6 +999,7 @@ describe('ModelsSection', () => {
           ok: true,
           text: () => Promise.resolve(JSON.stringify({
             access_token: 'jwt',
+            refresh_token: 'refresh',
             user: { email: 'ada@example.com' },
           })),
         })
@@ -1043,6 +1044,7 @@ describe('ModelsSection', () => {
     fireEvent.change(screen.getByLabelText(en.loginPassword), { target: { value: 'secret' } })
     fireEvent.click(screen.getByText(en.signIn))
     await waitFor(() => { expect(set).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN', 'jwt') })
+    expect(set).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH', 'refresh')
     await screen.findByText(`${en.accountSignedIn} ada@example.com`)
     expect(screen.getByText((content) => content.includes(en.accountDesktopAgent))).toBeTruthy()
     fireEvent.click(screen.getByText(en.loginModeEmail))

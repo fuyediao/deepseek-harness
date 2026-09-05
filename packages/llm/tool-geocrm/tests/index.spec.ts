@@ -51,11 +51,26 @@ describe('resolveConnection', () => {
     })
   })
 
-  it('rejects an empty origin', () => {
+  it('treats an empty origin as the local default', () => {
     const ctx = new Context()
-    expect(() => ToolGeocrm.resolveConnection(ctx, { baseURL: '' })).toThrow(/baseURL/)
+    expect(ToolGeocrm.resolveConnection(ctx, { baseURL: '' })).toEqual({
+      baseURL: 'http://127.0.0.1:3001',
+      apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
+    })
+  })
+
+  it('prefers GEOCRM_BASE_URL from the launch environment', () => {
+    vi.stubEnv('GEOCRM_BASE_URL', 'https://api.vps.example/')
+    const ctx = new Context()
+    expect(ToolGeocrm.resolveConnection(ctx, { baseURL: 'http://127.0.0.1:3001' }))
+      .toEqual({
+        baseURL: 'https://api.vps.example',
+        apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
+      })
   })
 })
+
+const connection = { baseURL: 'http://127.0.0.1:3001', apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' }
 
 describe('resolveToken', () => {
   it('reads the credentials seam, then the launch environment', async () => {
@@ -63,27 +78,27 @@ describe('resolveToken', () => {
     creds.provide('credentials', {
       resolve: () => Promise.resolve({ value: 'cred-jwt' }),
     } as never)
-    await expect(ToolGeocrm.resolveToken(creds, 'GEOCRM_HARNESS_TOKEN')).resolves.toBe('cred-jwt')
+    await expect(ToolGeocrm.resolveToken(creds, connection)).resolves.toBe('cred-jwt')
 
     const empty = new Context()
     empty.provide('credentials', {
       resolve: () => Promise.resolve({ value: '' }),
     } as never)
-    await expect(ToolGeocrm.resolveToken(empty, 'GEOCRM_HARNESS_TOKEN')).rejects.toThrow(/no GeoCRM session token/)
+    await expect(ToolGeocrm.resolveToken(empty, connection)).rejects.toThrow(/no GeoCRM session token/)
 
     const absent = new Context()
     absent.provide('credentials', {
       resolve: () => Promise.resolve(undefined),
     } as never)
-    await expect(ToolGeocrm.resolveToken(absent, 'GEOCRM_HARNESS_TOKEN')).rejects.toThrow(/no GeoCRM session token/)
+    await expect(ToolGeocrm.resolveToken(absent, connection)).rejects.toThrow(/no GeoCRM session token/)
 
     vi.stubEnv('GEOCRM_HARNESS_TOKEN', 'env-jwt')
     const ambient = new Context()
-    await expect(ToolGeocrm.resolveToken(ambient, 'GEOCRM_HARNESS_TOKEN')).resolves.toBe('env-jwt')
+    await expect(ToolGeocrm.resolveToken(ambient, connection)).resolves.toBe('env-jwt')
 
     vi.stubEnv('GEOCRM_HARNESS_TOKEN', '')
     const missing = new Context()
-    await expect(ToolGeocrm.resolveToken(missing, 'GEOCRM_HARNESS_TOKEN')).rejects.toThrow(/no GeoCRM session token/)
+    await expect(ToolGeocrm.resolveToken(missing, connection)).rejects.toThrow(/no GeoCRM session token/)
   })
 })
 

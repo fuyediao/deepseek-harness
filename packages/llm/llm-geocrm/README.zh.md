@@ -45,7 +45,7 @@ kind: "package-reference"
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `apiKeyEnv` | `GEOCRM_HARNESS_TOKEN` | 每请求通过凭据缝再回落到环境解析的凭据引用 |
-| `baseURL` | `http://127.0.0.1:3001` | GeoCRM API 源站；不要带 `/ai` 后缀 |
+| `baseURL` | `http://127.0.0.1:3001` | GeoCRM API 源站；不要带 `/ai` 后缀。`.env` 中的 `$GEOCRM_BASE_URL` 或 `$GEOCRM_DEPLOYMENT_DOMAIN` 优先于该字段 |
 | `models` | 静态旗舰 | 实时拉取不可用时展示的建议目录 |
 | `defaultContextWindow` | `200,000` | 所选模型没有精确值时的容量回退 |
 | `streamIdleTimeoutMs` | `300,000` | 一次未完成的流读取允许的最长提供方空闲时间 |
@@ -53,7 +53,7 @@ kind: "package-reference"
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-llm-geocrm)是每个已接受字段及其 JSDoc 的完整来源。
 
-令牌必须属于拥有 `desktop_agent` 且已在 GeoCRM 设置中保存 BYOK 密钥的 GeoCRM 用户。模型卡片通过 GeoCRM `POST /auth/password` 登录（工号会先解析）。401/403 为 `AUTH`；422 `missing_api_key` 为 `INVALID_REQUEST`（在 GeoCRM 中添加供应商密钥，而不是在这里）。
+令牌必须属于拥有 `desktop_agent` 且已在 GeoCRM 设置中保存 BYOK 密钥的 GeoCRM 用户。把 VPS 源站写进调用目录的 `.env`：`GEOCRM_BASE_URL=https://api.example.com` 或 `GEOCRM_DEPLOYMENT_DOMAIN=example.com`（与 GeoCRM Electron 的 `VITE_DEPLOYMENT_DOMAIN` 使用同一主机名）。模型卡片通过 GeoCRM `POST /auth/password` 登录（工号会先解析）并保存 refresh 令牌。在访问 JWT 距离 `exp` 不足五分钟时，本插件会调用 `POST /auth/refresh`。401/403 为 `AUTH`；422 `missing_api_key` 为 `INVALID_REQUEST`（在 GeoCRM 中添加供应商密钥，而不是在这里）。
 
 -----
 
@@ -70,6 +70,8 @@ kind: "package-reference"
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 插件 `apply`、`Config` 以及按请求的选项解析 |
+| [`src/origin.ts`](src/origin.ts) | `$GEOCRM_BASE_URL` / `$GEOCRM_DEPLOYMENT_DOMAIN` 源站解析 |
+| [`src/session.ts`](src/session.ts) | 通过 `POST /auth/refresh` 轮换 access/refresh |
 | [`src/adapter.ts`](src/adapter.ts) | `GeoCrmAdapter`：目录拉取、Responses POST、空闲看门狗 |
 | [`src/catalog.ts`](src/catalog.ts) | 复合 id、静态旗舰、目录 JSON |
 | [`src/translate.ts`](src/translate.ts) | harness 消息到 Responses 体；SSE 到 stream chunks |
@@ -113,7 +115,7 @@ GeoCRM 收到 `instructions`（循环系统提示加上任何额外的 system �
 
 - **完整回合 SSE，而不是 token 增量** — GeoCRM 写入不含官方 `event:` 行的 `data:` JSON，并且每回合最多发出一次工具调用。
 - **不发送图片与文件** — 持久图片与文件块留在会话日志中，在线路上变成空文本。
-- **JWT 与 BYOK 分离** — 此卡片保存 GeoCRM 会话令牌；过期 JWT 以 `AUTH` 失败，GeoCRM 设置中缺少供应商密钥以 `INVALID_REQUEST` 失败。
+- **JWT 与 BYOK 分离** — 此卡片保存 GeoCRM 会话对；没有 refresh 令牌的粘贴访问 JWT 仍会过期，GeoCRM 设置中缺少供应商密钥以 `INVALID_REQUEST` 失败。
 - **请求使用原始 `fetch`** — 没有共享代理或拦截配置。
 - **跳过插件新增的内容块类型** — 只序列化核心 text、tool-call 与 tool-result 块。
 
@@ -126,7 +128,7 @@ GeoCRM 收到 `instructions`（循环系统提示加上任何额外的 system �
 本开发备注是非权威工作上下文。已交付行为见上方各节及所链 Agent Note。
 
 - 不要把 `deepseek-official` 指向 GeoCRM 源站。GeoCRM 不是 OpenAI `/v1` API。
-- 不要为了 `/v1` 兼容去改 GeoCRM 仓库；本适配器使用已有的 `/ai/harness/responses` 约定。
+- 不要为了 `/v1` 兼容去改 GeoCRM；本适配器使用 `/ai/harness/responses`。会话轮换走 `POST /auth/refresh`。
 
 </details>
 

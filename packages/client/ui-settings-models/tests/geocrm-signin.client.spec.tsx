@@ -55,7 +55,11 @@ describe('GeoCrmSignIn', () => {
     const onCredentialChange = vi.fn()
     vi.stubGlobal('fetch', vi.fn((input: string) => {
       if (String(input).includes('/auth/password')) {
-        return jsonResponse({ access_token: 'jwt', user: { email: 'ada@example.com' } })
+        return jsonResponse({
+          access_token: 'jwt',
+          refresh_token: 'refresh',
+          user: { email: 'ada@example.com' },
+        })
       }
       return jsonResponse({
         result: JSON.stringify({ role: 'member', desktop_modules: [], readable_entities: [] }),
@@ -67,6 +71,7 @@ describe('GeoCrmSignIn', () => {
     fireEvent.change(screen.getByLabelText(en.loginPassword), { target: { value: 'secret' } })
     fireEvent.click(screen.getByText(en.signIn))
     await waitFor(() => { expect(storeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN', 'jwt') })
+    expect(storeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH', 'refresh')
     expect(onCredentialChange).toHaveBeenCalled()
     await screen.findByText(`${en.accountSignedIn} ada@example.com`)
     expect(screen.getByText((content) => content.includes(en.accountNoDesktopAgent))).toBeTruthy()
@@ -80,7 +85,7 @@ describe('GeoCrmSignIn', () => {
         return jsonResponse({ email: 'ada@example.com' })
       }
       if (String(input).includes('/auth/password')) {
-        return jsonResponse({ access_token: 'jwt' })
+        return jsonResponse({ access_token: 'jwt', refresh_token: 'refresh' })
       }
       return Promise.reject(new Error('probe-down'))
     }))
@@ -100,7 +105,7 @@ describe('GeoCrmSignIn', () => {
         return jsonResponse({ email: 'ada@example.com' })
       }
       if (String(input).includes('/auth/password')) {
-        return jsonResponse({ access_token: 'jwt' })
+        return jsonResponse({ access_token: 'jwt', refresh_token: 'refresh' })
       }
       return Promise.reject('probe-down')
     }))
@@ -126,6 +131,10 @@ describe('GeoCrmSignIn', () => {
     const removeCredential = vi.fn()
       .mockResolvedValueOnce('cannot-unset')
       .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce('cannot-unset-refresh')
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
     const onCredentialChange = vi.fn()
     mount({
       configured: true,
@@ -135,6 +144,30 @@ describe('GeoCrmSignIn', () => {
     fireEvent.click(screen.getByText(en.signOut))
     await screen.findByText('cannot-unset')
     fireEvent.click(screen.getByText(en.signOut))
+    await screen.findByText('cannot-unset-refresh')
+    fireEvent.click(screen.getByText(en.signOut))
     await waitFor(() => { expect(onCredentialChange).toHaveBeenCalled() })
+  })
+
+  it('unsets the access token when the refresh token cannot be stored', async () => {
+    vi.stubGlobal('fetch', vi.fn((input: string) => {
+      if (String(input).includes('/auth/password')) {
+        return jsonResponse({ access_token: 'jwt', refresh_token: 'refresh' })
+      }
+      return jsonResponse({
+        result: JSON.stringify({ role: 'member', desktop_modules: ['desktop_agent'] }),
+      })
+    }))
+    const storeCredential = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce('refresh-locked')
+    const removeCredential = vi.fn(() => Promise.resolve(undefined))
+    mount({ operations: operations({ storeCredential, removeCredential }) })
+    fireEvent.click(screen.getByText(en.loginModeEmail))
+    fireEvent.change(screen.getByLabelText(en.loginEmail), { target: { value: 'ada@example.com' } })
+    fireEvent.change(screen.getByLabelText(en.loginPassword), { target: { value: 'secret' } })
+    fireEvent.click(screen.getByText(en.signIn))
+    await screen.findByText('refresh-locked')
+    expect(removeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN')
   })
 })

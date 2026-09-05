@@ -25,7 +25,7 @@ With `dsh-tool-geocrm`, the desktop agent can read and write GeoCRM data as the 
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin on a Host that already stores a GeoCRM session token (`GEOCRM_HARNESS_TOKEN`) and can reach a `geocrm-api` origin. The Electron bundle does that: the Models card signs in, then these tools post to `/ai/harness/tools/{name}` with that JWT.
+Mount this plugin on a Host that already stores a GeoCRM session pair (`GEOCRM_HARNESS_TOKEN` and `GEOCRM_HARNESS_REFRESH`) and can reach a `geocrm-api` origin. The Electron bundle does that: the Models card signs in, then these tools post to `/ai/harness/tools/{name}` with a live JWT.
 
 ### When to choose it
 
@@ -37,7 +37,7 @@ Choose it when a desktop session should use the same CRM ACL as GeoCRM Harness. 
 - name: '@deepseek-ai/dsh-tool-geocrm'
 ```
 
-Origin and token reference default to the same values as `dsh-llm-geocrm`. When the `llm-geocrm` settings section is registered, its live `baseURL` and `apiKeyEnv` win so the Models card origin applies here too.
+Origin and token reference default to the same values as `dsh-llm-geocrm`, including `$GEOCRM_BASE_URL` / `$GEOCRM_DEPLOYMENT_DOMAIN`. When the `llm-geocrm` settings section is registered, its live `apiKeyEnv` still applies; a launch-environment origin wins over a stored `baseURL`.
 
 | Field | Default | Meaning |
 |---|---|---|
@@ -54,7 +54,7 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-Each registered tool is a thin HTTP proxy. `execute` resolves the origin and JWT, posts `{ arguments }` to `/ai/harness/tools/{name}`, and returns GeoCRM's result text. Entity enums stay open: GeoCRM refuses an entity the caller cannot read or write. Upload tools (`upload_file`, `prepare_upload`, `finalize_upload`, `delete_file`, `list_upload_kinds`) are not registered.
+Each registered tool is a thin HTTP proxy. `execute` resolves the origin and a live JWT (refreshing through `POST /auth/refresh` when `exp` is near), posts `{ arguments }` to `/ai/harness/tools/{name}`, and returns GeoCRM's result text. Entity enums stay open: GeoCRM refuses an entity the caller cannot read or write. Upload tools (`upload_file`, `prepare_upload`, `finalize_upload`, `delete_file`, `list_upload_kinds`) are not registered.
 
 ### Source map
 
@@ -99,7 +99,6 @@ Tool schemas are a stable prefix for the life of the mount. A changed origin or 
 <a id="known-limitations-and-deferred-work"></a>
 
 - **Upload tools are omitted** — file upload, prepare/finalize, and delete-file stay in GeoCRM Harness, not this Host.
-- **No token refresh** — an expired JWT fails the next call; the operator signs in again on the Models card.
 - **Entity enums are open** — ACL is enforced by GeoCRM, not by a filtered schema enum.
 
 <a id="dev-note"></a>
@@ -111,7 +110,7 @@ Tool schemas are a stable prefix for the life of the mount. A changed origin or 
 This Dev Note is non-authoritative working context. Shipped behavior lives in the sections above and the linked Agent Note.
 
 - Do not route these tools through public MCP or `gcrm_mcp_*` keys. The desktop Host uses `/ai/harness/tools` plus the user JWT.
-- Do not edit the GeoCRM repository; this package speaks the existing harness tool POST.
+- Do not add `/v1` or MCP keys to this path; this package speaks `/ai/harness/tools` plus the user JWT. Session rotation is owned by `dsh-llm-geocrm`.
 
 </details>
 

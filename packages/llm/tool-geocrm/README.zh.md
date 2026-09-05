@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-在已经存有 GeoCRM 会话令牌（`GEOCRM_HARNESS_TOKEN`）并能访问 `geocrm-api` 源站的 Host 上挂载本插件。Electron 包会这样做：模型卡片完成登录后，这些工具用该 JWT POST 到 `/ai/harness/tools/{name}`。
+在已经存有 GeoCRM 会话对（`GEOCRM_HARNESS_TOKEN` 与 `GEOCRM_HARNESS_REFRESH`）并能访问 `geocrm-api` 源站的 Host 上挂载本插件。Electron 包会这样做：模型卡片完成登录后，这些工具用有效 JWT POST 到 `/ai/harness/tools/{name}`。
 
 ### 何时选择它
 
@@ -37,7 +37,7 @@ kind: "package-reference"
 - name: '@deepseek-ai/dsh-tool-geocrm'
 ```
 
-源站与令牌引用默认与 `dsh-llm-geocrm` 相同。当 `llm-geocrm` 设置段已注册时，其实时 `baseURL` 与 `apiKeyEnv` 优先，因此模型卡片上的源站也会作用到这里。
+源站与令牌引用默认与 `dsh-llm-geocrm` 相同，包括 `$GEOCRM_BASE_URL` / `$GEOCRM_DEPLOYMENT_DOMAIN`。当 `llm-geocrm` 设置段已注册时，其实时 `apiKeyEnv` 仍会作用到这里；启动环境中的源站优先于已存储的 `baseURL`。
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
@@ -54,7 +54,7 @@ kind: "package-reference"
 <details>
 <summary>实现内部细节——点击展开</summary>
 
-每个已注册工具都是薄的 HTTP 代理。`execute` 解析源站与 JWT，把 `{ arguments }` POST 到 `/ai/harness/tools/{name}`，并返回 GeoCRM 的结果文本。实体枚举保持开放：调用方不能读或写的实体由 GeoCRM 拒绝。上传类工具（`upload_file`、`prepare_upload`、`finalize_upload`、`delete_file`、`list_upload_kinds`）未注册。
+每个已注册工具都是薄的 HTTP 代理。`execute` 解析源站与有效 JWT（在 `exp` 临近时通过 `POST /auth/refresh` 刷新），把 `{ arguments }` POST 到 `/ai/harness/tools/{name}`，并返回 GeoCRM 的结果文本。实体枚举保持开放：调用方不能读或写的实体由 GeoCRM 拒绝。上传类工具（`upload_file`、`prepare_upload`、`finalize_upload`、`delete_file`、`list_upload_kinds`）未注册。
 
 ### 源码对照
 
@@ -99,7 +99,6 @@ kind: "package-reference"
 <a id="known-limitations-and-deferred-work"></a>
 
 - **未包含上传工具** — 文件上传、prepare/finalize 与删除文件仍留在 GeoCRM Harness，不在本 Host。
-- **不刷新令牌** — 过期 JWT 会让下一次调用失败；操作者在模型卡片上重新登录。
 - **实体枚举保持开放** — ACL 由 GeoCRM 执行，而不是由过滤后的 schema 枚举执行。
 
 <a id="dev-note"></a>
@@ -111,7 +110,7 @@ kind: "package-reference"
 本开发备注是非权威工作上下文。已交付行为见以上各节及所链 Agent Note。
 
 - 不要把这些工具走公共 MCP 或 `gcrm_mcp_*` 密钥。桌面 Host 使用 `/ai/harness/tools` 加上用户 JWT。
-- 不要修改 GeoCRM 仓库；本包使用已有的 harness 工具 POST。
+- 不要在这条路径上加 `/v1` 或 MCP 密钥；本包使用 `/ai/harness/tools` 加上用户 JWT。会话轮换由 `dsh-llm-geocrm` 负责。
 
 </details>
 

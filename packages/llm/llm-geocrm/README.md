@@ -45,7 +45,7 @@ A request selects the route with `provider: geocrm`. Model ids are composite `pr
 | Field | Default | Meaning |
 |---|---|---|
 | `apiKeyEnv` | `GEOCRM_HARNESS_TOKEN` | Credential reference resolved per request through the credentials seam, then the environment |
-| `baseURL` | `http://127.0.0.1:3001` | GeoCRM API origin; no `/ai` suffix |
+| `baseURL` | `http://127.0.0.1:3001` | GeoCRM API origin; no `/ai` suffix. `$GEOCRM_BASE_URL` or `$GEOCRM_DEPLOYMENT_DOMAIN` in `.env` win over this field |
 | `models` | static flagships | Advisory catalog shown when a live fetch is unavailable |
 | `defaultContextWindow` | `200,000` | Capacity fallback for models without an exact value |
 | `streamIdleTimeoutMs` | `300,000` | Maximum provider idle time per outstanding stream read |
@@ -53,7 +53,7 @@ A request selects the route with `provider: geocrm`. Model ids are composite `pr
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-llm-geocrm) is the exhaustive source for every accepted field and its JSDoc.
 
-The token must belong to a GeoCRM user who has `desktop_agent` and BYOK keys stored in GeoCRM Settings. The Models card signs in through GeoCRM `POST /auth/password` (employee ID resolves first). A 401/403 is `AUTH`; a 422 `missing_api_key` is `INVALID_REQUEST` (add the vendor key in GeoCRM, not here).
+The token must belong to a GeoCRM user who has `desktop_agent` and BYOK keys stored in GeoCRM Settings. Put the VPS origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (same host GeoCRM Electron stores as `VITE_DEPLOYMENT_DOMAIN`). The Models card signs in through GeoCRM `POST /auth/password` (employee ID resolves first) and stores the refresh token. Before a request whose access JWT is within five minutes of `exp`, this plugin calls `POST /auth/refresh`. A 401/403 is `AUTH`; a 422 `missing_api_key` is `INVALID_REQUEST` (add the vendor key in GeoCRM, not here).
 
 -----
 
@@ -70,6 +70,8 @@ The plugin is a direct-fetch adapter. `apply` registers the `geocrm` route, the 
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Plugin `apply`, `Config`, and per-request option resolution |
+| [`src/origin.ts`](src/origin.ts) | `$GEOCRM_BASE_URL` / `$GEOCRM_DEPLOYMENT_DOMAIN` origin resolution |
+| [`src/session.ts`](src/session.ts) | Access/refresh rotation through `POST /auth/refresh` |
 | [`src/adapter.ts`](src/adapter.ts) | `GeoCrmAdapter`: catalog fetch, Responses POST, idle watchdog |
 | [`src/catalog.ts`](src/catalog.ts) | Composite ids, static flagships, catalog JSON |
 | [`src/translate.ts`](src/translate.ts) | Harness messages to Responses body; SSE to stream chunks |
@@ -113,7 +115,7 @@ Output tokens follow the selected GeoCRM catalog model and that vendor's complet
 
 - **Complete-turn SSE, not token deltas** — GeoCRM writes `data:` JSON without official `event:` lines and emits at most one tool call per turn.
 - **Images and files are not sent** — durable image and file blocks stay in the session log and become empty text on the wire.
-- **JWT and BYOK are separate** — this card stores the GeoCRM session token; expired JWTs fail with `AUTH`, and a missing vendor key in GeoCRM Settings fails with `INVALID_REQUEST`.
+- **JWT and BYOK are separate** — this card stores the GeoCRM session pair; a pasted access JWT without a refresh token still expires, and a missing vendor key in GeoCRM Settings fails with `INVALID_REQUEST`.
 - **Requests use raw `fetch`** — no shared proxy or interception configuration.
 - **Plugin-added content block types are skipped** — only core text, tool-call, and tool-result blocks are serialized.
 
@@ -126,7 +128,7 @@ Output tokens follow the selected GeoCRM catalog model and that vendor's complet
 This Dev Note is non-authoritative working context. Shipped behavior lives in the sections above and the linked Agent Note.
 
 - Do not point `deepseek-official` at a GeoCRM origin. GeoCRM is not an OpenAI `/v1` API.
-- Do not edit the GeoCRM repository to add `/v1` compatibility; this adapter speaks the existing `/ai/harness/responses` contract.
+- Do not add `/v1` compatibility to GeoCRM; this adapter speaks `/ai/harness/responses`. Session rotation uses `POST /auth/refresh`.
 
 </details>
 

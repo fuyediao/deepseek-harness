@@ -2,8 +2,8 @@
  * GeoCRM public login and harness access probe used by the desktop Models card.
  * The renderer talks to the GeoCRM API origin the same way GeoCRM Electron
  * does (`POST /auth/password`, `POST /auth/public/resolve-employee-id`). The
- * resulting access token is stored through the credentials Remote; this module
- * never keeps the password.
+ * access JWT and refresh token are stored through the credentials Remote; this
+ * module never keeps the password.
  */
 
 /** Employee id accepted by GeoCRM after normalization (`PS` plus four digits). */
@@ -13,8 +13,23 @@ export const EMPLOYEE_ID_PATTERN = /^PS\d{4}$/iu
 export interface GeoCrmSession {
   /** Supabase access JWT stored as `GEOCRM_HARNESS_TOKEN`. */
   readonly accessToken: string
+  /** Refresh token stored as `GEOCRM_HARNESS_REFRESH` when GeoCRM returns one. */
+  readonly refreshToken?: string
   /** Account email returned by GeoCRM, or the email used to sign in. */
   readonly email: string
+}
+
+/**
+ * Derive the refresh-token credential reference from the access-token name.
+ * `GEOCRM_HARNESS_TOKEN` becomes `GEOCRM_HARNESS_REFRESH`; any other name
+ * appends `_REFRESH`.
+ * @param apiKeyEnv - access-token reference.
+ * @returns the refresh-token reference.
+ */
+export function refreshCredentialRef(apiKeyEnv: string): string {
+  return apiKeyEnv.endsWith('_TOKEN')
+    ? `${apiKeyEnv.slice(0, -'_TOKEN'.length)}_REFRESH`
+    : `${apiKeyEnv}_REFRESH`
 }
 
 /** Harness ACL snapshot from `list_my_access`. */
@@ -34,6 +49,30 @@ export interface GeoCrmAccess {
  */
 export function normalizeGeoCrmOrigin(baseURL: string): string {
   return baseURL.replace(/\/+$/u, '')
+}
+
+/** Local origin used when no deployment env or card value is set. */
+export const GEOCRM_DEFAULT_ORIGIN = 'http://127.0.0.1:3001'
+
+/**
+ * Pick the login origin. A composition/env origin that is not the local
+ * default wins so a VPS `.env` is the switch, not the Models card field.
+ * @param compositionOrigin - Host-seeded composition `baseURL`.
+ * @param cardOrigin - typed or stored card `baseURL`.
+ * @returns origin the sign-in form posts to.
+ */
+export function resolveCardOrigin(
+  compositionOrigin: string | undefined,
+  cardOrigin: string | undefined,
+): string {
+  if (compositionOrigin !== undefined
+    && compositionOrigin.length > 0
+    && compositionOrigin !== GEOCRM_DEFAULT_ORIGIN) {
+    return compositionOrigin
+  }
+  if (cardOrigin !== undefined && cardOrigin.length > 0) return cardOrigin
+  if (compositionOrigin !== undefined && compositionOrigin.length > 0) return compositionOrigin
+  return GEOCRM_DEFAULT_ORIGIN
 }
 
 /**
@@ -108,7 +147,7 @@ export async function resolveEmployeeEmail(
  * @param email - account email.
  * @param password - account password; not stored.
  * @param signal - optional abort.
- * @returns the access token and email.
+ * @returns the access token, optional refresh token, and email.
  */
 export async function signInWithPassword(
   origin: string,
@@ -127,9 +166,13 @@ export async function signInWithPassword(
   if (!response.ok) {
     throw new Error(parsePublicError(raw) ?? 'Invalid credentials')
   }
-  let parsed: { access_token?: unknown; user?: { email?: unknown } }
+  let parsed: { access_token?: unknown; refresh_token?: unknown; user?: { email?: unknown } }
   try {
-    parsed = JSON.parse(raw) as { access_token?: unknown; user?: { email?: unknown } }
+    parsed = JSON.parse(raw) as {
+      access_token?: unknown
+      refresh_token?: unknown
+      user?: { email?: unknown }
+    }
   } catch {
     throw new Error('Invalid credentials')
   }
@@ -139,7 +182,13 @@ export async function signInWithPassword(
   const userEmail = typeof parsed.user?.email === 'string' && parsed.user.email.length > 0
     ? parsed.user.email
     : normalized
-  return { accessToken: parsed.access_token, email: userEmail }
+  return {
+    accessToken: parsed.access_token,
+    ...typeof parsed.refresh_token === 'string' && parsed.refresh_token.length > 0
+      ? { refreshToken: parsed.refresh_token }
+      : {},
+    email: userEmail,
+  }
 }
 
 /**

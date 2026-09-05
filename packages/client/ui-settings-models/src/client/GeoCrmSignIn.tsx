@@ -1,7 +1,7 @@
 /**
  * GeoCRM employee-id or email password sign-in on the Models card.
- * Stores the access JWT through the credentials Remote and probes
- * `list_my_access` so the card can show `desktop_agent`.
+ * Stores the access JWT and refresh token through the credentials Remote
+ * and probes `list_my_access` so the card can show `desktop_agent`.
  */
 
 import { useState } from 'react'
@@ -10,6 +10,7 @@ import type { GeoCrmAccess } from './geocrm-auth.ts'
 import {
   normalizeEmployeeId,
   probeAccess,
+  refreshCredentialRef,
   resolveEmployeeEmail,
   signInWithPassword,
 } from './geocrm-auth.ts'
@@ -83,6 +84,17 @@ export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
         setFailure(stored)
         return
       }
+      if (session.refreshToken !== undefined) {
+        const storedRefresh = await props.operations.storeCredential(
+          refreshCredentialRef(props.keyRef),
+          session.refreshToken,
+        )
+        if (storedRefresh !== undefined) {
+          await props.operations.removeCredential(props.keyRef)
+          setFailure(storedRefresh)
+          return
+        }
+      }
       setPassword('')
       setSessionEmail(session.email)
       props.onCredentialChange()
@@ -104,8 +116,13 @@ export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
     setFailure(undefined)
     try {
       const removed = await props.operations.removeCredential(props.keyRef)
+      const removedRefresh = await props.operations.removeCredential(refreshCredentialRef(props.keyRef))
       if (removed !== undefined) {
         setFailure(removed)
+        return
+      }
+      if (removedRefresh !== undefined) {
+        setFailure(removedRefresh)
         return
       }
       setAccess(undefined)

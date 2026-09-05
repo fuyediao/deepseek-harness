@@ -10,11 +10,11 @@ The shipped Electron Models page registered `llm-deepseek` (`deepseek-official`)
 
 ## Decision
 
-`@deepseek-ai/dsh-llm-geocrm` owns the `geocrm` route. It speaks GeoCRM's existing harness contract and does not change any file under the GeoCRM repository.
+`@deepseek-ai/dsh-llm-geocrm` owns the `geocrm` route. It speaks GeoCRM's existing harness contract. Password sign-in stores `GEOCRM_HARNESS_TOKEN` and `GEOCRM_HARNESS_REFRESH`. Before a request whose access JWT is within five minutes of `exp`, the Host calls GeoCRM `POST /auth/refresh` and writes the rotated pair. That public route is the one GeoCRM addition this Host needs: GoTrue refresh requires the server-side anon key, which this repository does not ship.
 
 The `electron` profile overlay disables `llm-deepseek` and `web-search-deepseek`, inserts `llm-geocrm`, and sets `agent-default-model` to `provider: geocrm` / `model: deepseek:deepseek-v4-flash`. `dsh web` and headless keep `deepseek-official`.
 
-Picker ids are composite `provider:model` values because GeoCRM catalog ids can collide across slugs. The adapter sends the slug as `x-geocrm-provider` and the vendor id as `model`. The Models card (`llm-geocrm`) stores the session token under `GEOCRM_HARNESS_TOKEN` and the origin under `baseURL` (default `http://127.0.0.1:3001`).
+Picker ids are composite `provider:model` values because GeoCRM catalog ids can collide across slugs. The adapter sends the slug as `x-geocrm-provider` and the vendor id as `model`. The Models card (`llm-geocrm`) stores the session token under `GEOCRM_HARNESS_TOKEN`. The API origin comes from the launch environment (`GEOCRM_BASE_URL`, or `GEOCRM_DEPLOYMENT_DOMAIN` as `https://api.{domain}`), then an explicit settings `baseURL`, then `http://127.0.0.1:3001`.
 
 `packages/client/ui-settings-models` maps `llm-geocrm` to a curated editor: GeoCRM employee-id or email sign-in (public `POST /auth/password` and `POST /auth/public/resolve-employee-id`), a write-only token paste fallback, customizable origin, and the shared model-list editor so Fetch can call registered discovery. After sign-in the card probes `POST /ai/harness/tools/list_my_access` and shows whether `desktop_agent` is granted.
 
@@ -22,8 +22,8 @@ Picker ids are composite `provider:model` values because GeoCRM catalog ids can 
 
 ## Testing
 
-- `packages/llm/llm-geocrm/tests` cover catalog ids, HTTP mapping, Responses translation, adapter fetch, and plugin `apply`.
-- `packages/client/ui-settings-models/tests` cover the GeoCRM placeholders, sign-in HTTP, and `desktop_agent` probe.
+- `packages/llm/llm-geocrm/tests` cover catalog ids, HTTP mapping, Responses translation, adapter fetch, plugin `apply`, and session refresh.
+- `packages/client/ui-settings-models/tests` cover the GeoCRM placeholders, sign-in HTTP, refresh-token persist, and `desktop_agent` probe.
 - `packages/llm/tool-geocrm/tests` cover connection resolution, token resolution, and harness tool POST.
 
 ## Alternatives considered
@@ -32,7 +32,11 @@ Picker ids are composite `provider:model` values because GeoCRM catalog ids can 
 
 **Reuse `llm-pi-ai` with `openai-responses` and `baseURL: …/ai/harness`.** Rejected: pi-ai uses the official OpenAI Responses SDK, which expects `event:` lines and token deltas. GeoCRM writes `data:` JSON for a complete turn and at most one tool call.
 
-**Add `/v1` to GeoCRM so an existing adapter works.** Rejected: the GeoCRM tree is out of scope; the working Electron Codex host already posts `{apiBase}/ai/harness/responses` with `GEOCRM_HARNESS_TOKEN` and `x-geocrm-provider`.
+**Add `/v1` to GeoCRM so an existing adapter works.** Rejected: the working Electron Codex host already posts `{apiBase}/ai/harness/responses` with `GEOCRM_HARNESS_TOKEN` and `x-geocrm-provider`.
+
+**Refresh GoTrue from this Host with a copied anon key.** Rejected: extra operator config. `POST /auth/refresh` already holds the anon key.
+
+**Refresh only while the access JWT is still valid, using it as the GoTrue `apikey`.** Rejected: overnight idle still forces sign-in.
 
 **Put the adapter inside `dsh-electron-app`.** Rejected: adapters belong in `packages/llm/*` so the Host LLM seam stays the registration point and the package keeps its own 100% `src` coverage.
 
@@ -42,4 +46,4 @@ Picker ids are composite `provider:model` values because GeoCRM catalog ids can 
 - Every electron session inherits GeoCRM CRM tools. GeoCRM ACL refuses reads and writes the signed-in user cannot perform. Isolation overlays disable `tool-geocrm` so e2e catalogs stay free of that origin.
 - Web search on the desktop profile has no DeepSeek search provider. `web_fetch` still uses `http`.
 - Composite model ids (`deepseek:deepseek-v4-flash`) are what the composer and `agent-default-model` store. A bare colliding id is refused.
-- Expired JWTs fail the next request with `AUTH`. GeoCRM does not refresh tokens for this Host.
+- The Host keeps a password sign-in alive through `POST /auth/refresh`. A pasted access JWT without a refresh token still expires. A revoked refresh token fails the next request with `AUTH`.
