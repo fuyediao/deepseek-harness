@@ -11,6 +11,7 @@ import {
   parseCompositeModelId,
   resolveAdvisoryModels,
   resolveGeoCrmRoute,
+  settingsModelAllowlist,
 } from '../src/catalog.ts'
 
 describe('composite model ids', () => {
@@ -86,6 +87,10 @@ describe('catalog JSON', () => {
       { provider: 'geocrm', id: 'grok:x', name: 'X', inputModalities: ['text', 'image'] },
     ])
     expect(catalogEntriesToDiscovered(rows)).toEqual([{ id: 'grok:x', name: 'X' }])
+    expect(catalogEntriesToDiscovered([{ id: 'opus', provider: 'claude', configured: false }])).toEqual([{
+      id: 'claude:opus',
+      description: GEOCRM_NOT_CONFIGURED_DESCRIPTION,
+    }])
     expect(catalogEntriesToDiscovered([{ id: 'y', provider: 'deepseek' }])).toEqual([
       { id: 'deepseek:y' },
     ])
@@ -104,6 +109,16 @@ describe('catalog JSON', () => {
     }])
     expect(catalogEntryName({ id: 'y', provider: 'deepseek' })).toBe('y')
     expect(catalogEntryName({ id: 'y', provider: 'deepseek', labelEn: 'Why' })).toBe('Why')
+  })
+})
+
+describe('settingsModelAllowlist', () => {
+  it('ignores the adapter default flagships and keeps a customized set', () => {
+    expect(settingsModelAllowlist([...DEFAULT_MODELS])).toBeNull()
+    expect(settingsModelAllowlist([...DEFAULT_MODELS].reverse())).toBeNull()
+    expect([...settingsModelAllowlist([{ id: 'chatgpt:gpt-5.6-sol' }]) ?? []]).toEqual([
+      'chatgpt:gpt-5.6-sol',
+    ])
   })
 })
 

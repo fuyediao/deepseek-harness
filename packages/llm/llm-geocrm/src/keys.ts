@@ -103,3 +103,23 @@ export function filterByKeyPresence(
   if (configured === null) return entries.filter(entry => entry.configured !== false)
   return entries.filter(entry => vendorHasConfiguredKey(entry.provider, configured))
 }
+
+/**
+ * Stamp each catalog row with whether its vendor has a key.
+ * Presence unknown leaves existing `configured` flags in place.
+ * @param entries - live catalog rows.
+ * @param configured - provider ids that have a key, or `null` when unknown.
+ * @returns detached rows, including vendors with no key.
+ */
+export function markByKeyPresence(
+  entries: readonly GeoCrmCatalogEntry[],
+  configured: ReadonlySet<string> | null,
+): GeoCrmCatalogEntry[] {
+  if (configured === null) {
+    return entries.map(entry => ({ ...entry }))
+  }
+  return entries.map(entry => ({
+    ...entry,
+    configured: vendorHasConfiguredKey(entry.provider, configured),
+  }))
+}

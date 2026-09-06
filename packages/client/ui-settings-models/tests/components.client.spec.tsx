@@ -207,6 +207,31 @@ function scriptedFace(overrides: {
   return { face, update, mutate, set, unset }
 }
 
+function geocrmModelsNamespace(options: {
+  userModels?: Array<{ id: string; name?: string }>
+  defaultModels?: Array<{ id: string; name?: string }>
+} = {}): SettingsNamespaceView {
+  const GeoCrmConfig = Schema.object({
+    apiKeyEnv: Schema.string().role('credential-ref'),
+    models: Schema.array(Schema.object({
+      id: Schema.string().required(),
+      name: Schema.string(),
+    })).default(options.defaultModels ?? []),
+  })
+  const user = options.userModels === undefined
+    ? { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' }
+    : { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN', models: options.userModels }
+  return {
+    ns: 'llm-geocrm',
+    schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+    value: { ...user },
+    user,
+    applies: 'live',
+    secrets: [],
+    revision: 0,
+  }
+}
+
 type PageContext = ConstructorParameters<typeof ModelsSettingsStore>[0]
 
 /**
@@ -1117,24 +1142,18 @@ describe('ModelsSection', () => {
     expect(unset).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH')
   })
 
-  it('hides GeoCRM adapter defaults whose vendor has no key', async () => {
+  it('lists the live GeoCRM catalog with combined labels and Not Configured', async () => {
     const { face } = scriptedFace()
     face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
-      { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+      { id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' },
+      { id: 'claude:claude-fable-5-1', name: 'Fable 5.1', description: 'geocrm:not-configured' },
     ])))
     const GeoCrmConfig = Schema.object({
       apiKeyEnv: Schema.string().role('credential-ref'),
-      baseURL: Schema.string(),
       models: Schema.array(Schema.object({
         id: Schema.string().required(),
         name: Schema.string(),
-      })).default([
-        { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
-        { id: 'gemini:gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
-        { id: 'claude:claude-opus-5', name: 'Opus 5' },
-        { id: 'grok:grok-4.5', name: 'Grok 4.5' },
-        { id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
-      ]),
+      })).default([{ id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' }]),
     })
     const namespace: SettingsNamespaceView = {
       ns: 'llm-geocrm',
@@ -1156,26 +1175,26 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={() => {}}
     />)
-    await screen.findByText(en.modelsKeyed)
-    const ids = screen.getAllByLabelText<HTMLInputElement>(new RegExp(en.modelId))
-      .map(input => input.value)
-    expect(ids).toEqual(['chatgpt:gpt-5.6-sol'])
+    await screen.findByText('OpenAI \u00b7 GPT-6 Astra')
+    expect(screen.getByText('Anthropic \u00b7 Fable 5.1')).toBeTruthy()
+    expect(screen.getByText(en.notConfigured)).toBeTruthy()
+    expect(screen.getByLabelText(en.catalogSearch)).toBeTruthy()
     expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
-    expect(screen.queryByText(en.fetchTitle)).toBeNull()
+    expect(screen.queryByText(en.fetchModels)).toBeNull()
   })
 
-  it('keeps GeoCRM adapter defaults when key presence cannot be read', async () => {
+  it('shows a GeoCRM catalog error instead of adapter-default rows', async () => {
     const { face } = scriptedFace()
-    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteFail('no', 'gateway/internal')))
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteFail(
+      'GeoCRM API error (HTTP 401) at https://api.powersource.app',
+      'gateway/internal',
+    )))
     const GeoCrmConfig = Schema.object({
       apiKeyEnv: Schema.string().role('credential-ref'),
       models: Schema.array(Schema.object({
         id: Schema.string().required(),
         name: Schema.string(),
-      })).default([
-        { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
-        { id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
-      ]),
+      })).default([{ id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' }]),
     })
     const namespace: SettingsNamespaceView = {
       ns: 'llm-geocrm',
@@ -1197,12 +1216,12 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={() => {}}
     />)
-    await screen.findByText(en.modelsInherited)
-    expect(screen.getByDisplayValue('chatgpt:gpt-5.6-sol')).toBeTruthy()
-    expect(screen.getByDisplayValue('deepseek:deepseek-v4-flash')).toBeTruthy()
+    await screen.findByText('GeoCRM API error (HTTP 401) at https://api.powersource.app')
+    expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
+    expect(screen.queryByText('DeepSeek \u00b7 DeepSeek V4 Flash')).toBeNull()
   })
 
-  it('drops an in-flight GeoCRM presence probe when the card unmounts', async () => {
+  it('drops an in-flight GeoCRM catalog load when the card unmounts', async () => {
     const { face } = scriptedFace()
     let finish!: (value: ReturnType<typeof remoteOk>) => void
     face.llm.discoverModels = vi.fn(() => new Promise((resolve) => {
@@ -1213,7 +1232,7 @@ describe('ModelsSection', () => {
       models: Schema.array(Schema.object({
         id: Schema.string().required(),
         name: Schema.string(),
-      })).default([{ id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' }]),
+      })),
     })
     const namespace: SettingsNamespaceView = {
       ns: 'llm-geocrm',
@@ -1235,22 +1254,27 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={() => {}}
     />)
-    expect(screen.getByText(en.fetching)).toBeTruthy()
-    expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
+    expect(screen.getByText(en.catalogLoading)).toBeTruthy()
     view.unmount()
     await act(async () => {
       finish(remoteOk([{ id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' }]))
     })
   })
 
-  it('hides unkeyed rows from a customized GeoCRM catalog', async () => {
-    const { face } = scriptedFace()
-    const models = [
-      { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
-      { id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
-    ]
+  it('toggles a live GeoCRM catalog row into the drafted allowlist', async () => {
+    const { face, mutate } = scriptedFace()
+    mutate.mockImplementation(() => Promise.resolve(remoteOk({
+      ns: 'llm-geocrm',
+      schema: {},
+      value: {},
+      user: {},
+      applies: 'live',
+      secrets: [],
+      revision: 1,
+    })))
     face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
-      { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+      { id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' },
+      { id: 'gemini:gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
     ])))
     const GeoCrmConfig = Schema.object({
       apiKeyEnv: Schema.string().role('credential-ref'),
@@ -1258,42 +1282,6 @@ describe('ModelsSection', () => {
         id: Schema.string().required(),
         name: Schema.string(),
       })),
-    })
-    const namespace: SettingsNamespaceView = {
-      ns: 'llm-geocrm',
-      schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
-      value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN', models },
-      user: { models },
-      applies: 'live',
-      secrets: [],
-      revision: 0,
-    }
-    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
-    render(<ProviderEditor
-      provider="geocrm"
-      displayName="GeoCRM"
-      namespace={namespace}
-      schema={settingsSchema}
-      settingsPath={[]}
-      operations={operationsWith(face)}
-      t={t}
-      readOnly={false}
-      onClose={() => {}}
-    />)
-    await screen.findByText(en.modelsCustomized)
-    expect(screen.getByDisplayValue('chatgpt:gpt-5.6-sol')).toBeTruthy()
-    expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
-  })
-
-  it('shows an empty GeoCRM catalog when no vendor has a key', async () => {
-    const { face } = scriptedFace()
-    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([])))
-    const GeoCrmConfig = Schema.object({
-      apiKeyEnv: Schema.string().role('credential-ref'),
-      models: Schema.array(Schema.object({
-        id: Schema.string().required(),
-        name: Schema.string(),
-      })).default([{ id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' }]),
     })
     const namespace: SettingsNamespaceView = {
       ns: 'llm-geocrm',
@@ -1315,9 +1303,203 @@ describe('ModelsSection', () => {
       readOnly={false}
       onClose={() => {}}
     />)
-    await screen.findByText(en.modelsKeyed)
-    expect(screen.getByText(en.modelsEmpty)).toBeTruthy()
-    expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
+    const astra = await screen.findByRole('switch', { name: 'Show OpenAI · GPT-6 Astra in the model menu' })
+    expect(astra.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(astra)
+    fireEvent.click(screen.getByText(en.apply))
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(mutate.mock.calls[0]?.[1]).toEqual([
+      {
+        op: 'set',
+        path: ['models'],
+        value: [{ id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' }],
+      },
+    ])
+  })
+
+  it('filters the live GeoCRM catalog by search text', async () => {
+    const { face } = scriptedFace()
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
+      { id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' },
+      { id: 'gemini:gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
+    ])))
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+      models: Schema.array(Schema.object({
+        id: Schema.string().required(),
+        name: Schema.string(),
+      })),
+    })
+    const namespace: SettingsNamespaceView = {
+      ns: 'llm-geocrm',
+      schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+      value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
+      applies: 'live',
+      secrets: [],
+      revision: 0,
+    }
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    await screen.findByText('OpenAI \u00b7 GPT-6 Astra')
+    fireEvent.change(screen.getByLabelText(en.catalogSearch), { target: { value: 'gemini' } })
+    expect(screen.getByText('Google \u00b7 Gemini 3.8 Flash')).toBeTruthy()
+    expect(screen.queryByText('OpenAI \u00b7 GPT-6 Astra')).toBeNull()
+    fireEvent.change(screen.getByLabelText(en.catalogSearch), { target: { value: 'nope' } })
+    expect(screen.getByText(en.catalogNoMatches)).toBeTruthy()
+  })
+
+  it('refreshes the live GeoCRM catalog and can refuse that reload', async () => {
+    const { face } = scriptedFace()
+    let loads = 0
+    face.llm.discoverModels = vi.fn(() => {
+      loads += 1
+      if (loads === 1) {
+        return Promise.resolve(remoteOk([{ id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' }]))
+      }
+      if (loads === 2) {
+        return Promise.resolve(remoteOk([{ id: 'gemini:gemini-3.8-flash', name: 'Gemini 3.8 Flash' }]))
+      }
+      return Promise.resolve(remoteFail('GeoCRM API error (HTTP 401) at https://api.powersource.app'))
+    })
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={geocrmModelsNamespace()}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    await screen.findByText('OpenAI \u00b7 GPT-6 Astra')
+    expect(screen.getByText(en.catalogLive)).toBeTruthy()
+    fireEvent.click(screen.getByLabelText(en.catalogRefresh))
+    await screen.findByText('Google \u00b7 Gemini 3.8 Flash')
+    fireEvent.click(screen.getByLabelText(en.catalogRefresh))
+    await screen.findByText('GeoCRM API error (HTTP 401) at https://api.powersource.app')
+    expect(screen.queryByText('Google \u00b7 Gemini 3.8 Flash')).toBeNull()
+  })
+
+  it('turns a live GeoCRM catalog row off and restores inherited defaults', async () => {
+    const { face, mutate } = scriptedFace()
+    mutate.mockImplementation(() => Promise.resolve(remoteOk({
+      ns: 'llm-geocrm',
+      schema: {},
+      value: {},
+      user: {},
+      applies: 'live',
+      secrets: [],
+      revision: 1,
+    })))
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
+      { id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' },
+      { id: 'gemini:gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
+    ])))
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={geocrmModelsNamespace({
+        defaultModels: [{ id: 'gemini:gemini-3.8-flash', name: 'Gemini 3.8 Flash' }],
+        userModels: [{ id: '' }, { id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' }],
+      })}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    const astra = await screen.findByRole('switch', { name: 'Show OpenAI · GPT-6 Astra in the model menu' })
+    expect(astra.getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByText(en.resetModels)).toBeTruthy()
+    fireEvent.click(astra)
+    expect(astra.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(screen.getByText(en.resetModels))
+    expect(astra.getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByRole('switch', { name: 'Show Google · Gemini 3.8 Flash in the model menu' })
+      .getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(screen.getByText(en.apply))
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(mutate.mock.calls[0]?.[1]).toEqual([
+      { op: 'unset', path: ['models'] },
+    ])
+  })
+
+  it('shows an empty GeoCRM catalog and nameless rows', async () => {
+    const { face } = scriptedFace()
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([])))
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    const view = render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={geocrmModelsNamespace()}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    await screen.findByText(en.catalogEmpty)
+    view.unmount()
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
+      { id: 'openai:gpt-x' },
+      { id: 'chatgpt:named', name: '' },
+    ])))
+    render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={geocrmModelsNamespace()}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    await screen.findByText('OpenAI \u00b7 openai:gpt-x')
+    expect(screen.getByText('OpenAI \u00b7 chatgpt:named')).toBeTruthy()
+    const nameless = screen.getByRole('switch', { name: 'Show OpenAI · openai:gpt-x in the model menu' })
+    fireEvent.click(nameless)
+    expect(nameless.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('drops a refused GeoCRM catalog load when the card unmounts', async () => {
+    const { face } = scriptedFace()
+    let finish!: (value: ReturnType<typeof remoteFail>) => void
+    face.llm.discoverModels = vi.fn(() => new Promise((resolve) => {
+      finish = resolve
+    }))
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    const view = render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={geocrmModelsNamespace()}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    expect(screen.getByText(en.catalogLoading)).toBeTruthy()
+    view.unmount()
+    await act(async () => {
+      finish(remoteFail('gone'))
+    })
   })
 
   it('rejects an invalid draft before writing', async () => {

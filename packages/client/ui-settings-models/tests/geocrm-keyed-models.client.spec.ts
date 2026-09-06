@@ -5,6 +5,9 @@ import {
   geocrmModelId,
   geocrmVendorPrefix,
   geocrmVendorsFromIds,
+  geocrmCatalogLabel,
+  geocrmVendorDisplayName,
+  isGeocrmCatalogNotConfigured,
   visibleGeocrmModels,
 } from '../src/client/geocrm-keyed-models.ts'
 
@@ -52,5 +55,19 @@ describe('geocrm keyed catalog helpers', () => {
     expect(visibleGeocrmModels(rows, false, { status: 'known', vendors: new Set() })).toEqual(rows)
     expect(visibleGeocrmModels(rows, true, { status: 'known', vendors: new Set(['chatgpt']) }))
       .toEqual([{ id: '' }])
+  })
+
+  it('builds GeoCRM Electron combined labels', () => {
+    expect(geocrmVendorDisplayName('chatgpt')).toBe('OpenAI')
+    expect(geocrmVendorDisplayName('openai')).toBe('OpenAI')
+    expect(geocrmVendorDisplayName('gemini')).toBe('Google')
+    expect(geocrmVendorDisplayName('claude')).toBe('Anthropic')
+    expect(geocrmVendorDisplayName('grok')).toBe('xAI')
+    expect(geocrmVendorDisplayName('custom_vendor')).toBe('Custom Vendor')
+    expect(geocrmCatalogLabel('chatgpt:gpt-6-astra', 'GPT-6 Astra')).toBe('OpenAI \u00b7 GPT-6 Astra')
+    expect(geocrmCatalogLabel('bare', 'Bare')).toBe('Bare \u00b7 Bare')
+    expect(geocrmCatalogLabel('', 'Bare')).toBe('Bare')
+    expect(isGeocrmCatalogNotConfigured({ description: 'geocrm:not-configured' })).toBe(true)
+    expect(isGeocrmCatalogNotConfigured({})).toBe(false)
   })
 })

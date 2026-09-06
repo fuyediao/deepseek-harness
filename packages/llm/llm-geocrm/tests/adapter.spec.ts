@@ -112,8 +112,34 @@ describe('GeoCrmAdapter', () => {
     })).toEqual([
       { id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
       { id: 'deepseek:deepseek-v4-flash', name: 'Flash' },
+      { id: 'claude:claude-opus-5', name: 'Opus', description: 'geocrm:not-configured' },
     ])
     expect(server.requests.some(request => request.url === '/ai/settings/connectivity')).toBe(false)
+  })
+
+  it('lists only customized allowlist ids that still have a key', async () => {
+    const server = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/configured') {
+        response.end(JSON.stringify({ configured: ['openai', 'deepseek'] }))
+        return
+      }
+      response.end(JSON.stringify({
+        models: [
+          { id: 'gpt-5.6-sol', provider: 'chatgpt', labelEn: 'Sol' },
+          { id: 'deepseek-v4-flash', provider: 'deepseek', labelEn: 'Flash' },
+        ],
+      }))
+    })
+    servers.push(server)
+    const options = connection(server.origin)
+    options.models = [{ id: 'chatgpt:gpt-5.6-sol', name: 'Sol' }]
+    const adapter = new GeoCrmAdapter({
+      options: () => options,
+      resolveApiKey: () => Promise.resolve('jwt-token'),
+    })
+    expect(await adapter.listModels('geocrm')).toEqual([
+      { provider: 'geocrm', id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
+    ])
   })
 
   it('falls back to connectivity and hides vendors with no key', async () => {
@@ -223,7 +249,18 @@ describe('GeoCrmAdapter', () => {
     })
     servers.push(server)
     const discovered = await adapterOf(server.origin).discover({ baseURL: server.origin })
-    expect(discovered.map(model => model.id)).toEqual(['chatgpt:gpt-5.6-sol'])
+    expect(discovered).toEqual([
+      { id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
+      { id: 'deepseek:deepseek-v4-flash', name: 'Flash', description: 'geocrm:not-configured' },
+    ])
+  })
+
+  it('refuses discovery when the stored session is expired', async () => {
+    const adapter = new GeoCrmAdapter({
+      options: () => connection('http://127.0.0.1:9'),
+      resolveApiKey: () => Promise.reject(new LlmError('expired', 'AUTH')),
+    })
+    await expect(adapter.discover({})).rejects.toMatchObject({ code: 'AUTH', message: 'expired' })
   })
 
   it('returns static flagships when discovery has no token', async () => {

@@ -28,13 +28,20 @@ import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import {
   catalogEntriesToDiscovered,
   catalogEntriesToModels,
+  encodeCompositeModelId,
   parseCatalogResponse,
   resolveGeoCrmRoute,
+  settingsModelAllowlist,
   STATIC_FLAGSHIP_MODELS,
   type GeoCrmCatalogEntry,
   type GeoCrmCatalogModel,
 } from './catalog.ts'
-import { filterByKeyPresence, parseConfiguredList, parseConfiguredProviders } from './keys.ts'
+import {
+  filterByKeyPresence,
+  markByKeyPresence,
+  parseConfiguredList,
+  parseConfiguredProviders,
+} from './keys.ts'
 import { geocrmHttpErrorCode, normalizeGeoCrmOrigin, parseGeoCrmErrorBody } from './http.ts'
 import { chunksFromGeoCrmEvents, parseGeoCrmSseEvent, readSseData, toGeoCrmRequest } from './translate.ts'
 
@@ -105,7 +112,14 @@ export class GeoCrmAdapter extends LlmAdapter {
         this.fetchCatalog(origin, token),
         this.fetchConfiguredProviders(origin, token),
       ])
-      return catalogEntriesToModels(provider, filterByKeyPresence(live, configured))
+      const keyed = filterByKeyPresence(live, configured)
+      const allow = settingsModelAllowlist(connection.models)
+      return catalogEntriesToModels(
+        provider,
+        allow === null
+          ? keyed
+          : keyed.filter(entry => allow.has(encodeCompositeModelId(entry.provider, entry.id))),
+      )
     } catch {
       // Advisory catalog remains the answer when the token is missing or the
       // origin is unreachable; stream still fails at the Responses POST.
@@ -181,7 +195,7 @@ export class GeoCrmAdapter extends LlmAdapter {
     }
     const entries = await this.fetchCatalog(origin, token, signal)
     const configured = await this.fetchConfiguredProviders(origin, token)
-    return catalogEntriesToDiscovered(filterByKeyPresence(entries, configured))
+    return catalogEntriesToDiscovered(markByKeyPresence(entries, configured))
   }
 
   /**
@@ -194,7 +208,8 @@ export class GeoCrmAdapter extends LlmAdapter {
     try {
       const token = await this.config.resolveApiKey(this.config.options())
       return token.length === 0 ? undefined : token
-    } catch {
+    } catch (error) {
+      if (error instanceof LlmError && error.code === 'AUTH') throw error
       // Draft interrogation without a stored session still shows flagships.
       return undefined
     }

@@ -43,7 +43,7 @@ dsh electron --no-window
 
 ### 模型页
 
-桌面窗口会在会话界面之前打开 GeoCRM Harness 登录页（`shell.gate`）。模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。该页使用目录说明并隐藏「添加提供方」；composer 按供应商顺序列出 ChatGPT、Gemini、Claude、Grok 以及 `GET /ai/models?client=electron` 中的其余模型。在调用目录的 `.env` 里设置 GeoCRM API 源站（`GEOCRM_BASE_URL` 或 `GEOCRM_DEPLOYMENT_DOMAIN`）；默认是本地 `geocrm-api` 的 `http://127.0.0.1:3001`。用 Google、GeoCRM 工号或邮箱登录，或粘贴会话令牌。供应商 API 密钥留在 GeoCRM 设置中。composer 与模型卡片目录只列出已有密钥的供应商，包括 DeepSeek。密码或 Google 登录会通过 `POST /auth/refresh` 保持会话。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该已登录用户身份调用 GeoCRM Harness CRM 工具，并遵循该账号的授权。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
+桌面窗口会在会话界面之前打开 GeoCRM Harness 登录页（`shell.gate`）。模型页显示来自 [`dsh-llm-geocrm`](../../llm/llm-geocrm/README.zh.md) 的 `geocrm` 卡片，并且不挂载 `llm-deepseek`。该页使用目录说明并隐藏「添加提供方」；composer 按供应商顺序列出 OpenAI、Google、Anthropic、xAI 以及 `GET /ai/models?client=electron` 中的其余模型。在调用目录的 `.env` 里设置 GeoCRM API 源站（`GEOCRM_BASE_URL` 或 `GEOCRM_DEPLOYMENT_DOMAIN`）；默认是本地 `geocrm-api` 的 `http://127.0.0.1:3001`。用 Google、GeoCRM 工号或邮箱登录，或粘贴会话令牌。供应商 API 密钥留在 GeoCRM 设置中。模型卡片列出全部 GeoCRM 模型；没有密钥的供应商显示未设定。composer 只列出已开启且供应商已有密钥的模型，包括 DeepSeek。密码或 Google 登录会通过 `POST /auth/refresh` 保持会话。每个桌面会话还会获得 [`dsh-tool-geocrm`](../../llm/tool-geocrm/README.zh.md)，以便 agent 以该已登录用户身份调用 GeoCRM Harness CRM 工具，并遵循该账号的授权。见 [GeoCRM 网关说明](../../../.agents/notes/implemented/architecture/2026-09-05-electron-geocrm-llm-gateway.zh.md)。
 
 -----
 

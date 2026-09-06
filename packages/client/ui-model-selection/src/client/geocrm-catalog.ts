@@ -15,12 +15,12 @@ export const GEOCRM_NOT_CONFIGURED = 'geocrm:not-configured'
 export const GEOCRM_VENDOR_ORDER = ['chatgpt', 'gemini', 'claude', 'grok'] as const
 
 const VENDOR_DISPLAY_NAMES: Readonly<Record<string, string>> = {
-  chatgpt: 'ChatGPT',
+  chatgpt: 'OpenAI',
   openai: 'OpenAI',
-  claude: 'Claude',
+  claude: 'Anthropic',
   anthropic: 'Anthropic',
-  gemini: 'Gemini',
-  grok: 'Grok',
+  gemini: 'Google',
+  grok: 'xAI',
   deepseek: 'DeepSeek',
   mistral: 'Mistral',
   moonshot: 'Moonshot',

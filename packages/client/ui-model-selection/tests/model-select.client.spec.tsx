@@ -250,10 +250,10 @@ describe('ModelSelect GeoCRM vendor groups', () => {
     expect(trigger.textContent).toContain('DeepSeek \u00b7 DeepSeek V4 Flash')
     fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
-    expect(screen.getByRole('group', { name: 'ChatGPT' })).toBeTruthy()
-    expect(screen.getByRole('group', { name: 'Gemini' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'OpenAI' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Google' })).toBeTruthy()
     expect(screen.getByRole('group', { name: 'DeepSeek' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('menuitemradio', { name: /ChatGPT/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /OpenAI/ }))
     await waitFor(() => {
       expect(select).toHaveBeenCalledWith({
         provider: 'geocrm',
@@ -288,7 +288,7 @@ describe('ModelSelect GeoCRM vendor groups', () => {
       t={t}
     />)
 
-    fireEvent.click(screen.getByRole('button', { name: /ChatGPT/ }))
+    fireEvent.click(screen.getByRole('button', { name: /OpenAI/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
     const row = screen.getByRole('menuitemradio', { name: /未设定/ })
     expect(row).toHaveProperty('disabled', true)
@@ -318,7 +318,7 @@ describe('ModelSelect GeoCRM vendor groups', () => {
       t={t}
     />)
 
-    fireEvent.click(screen.getByRole('button', { name: /Claude/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Anthropic/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
     expect(screen.getByRole('menuitemradio', { name: /未设定/ })).toHaveProperty('disabled', false)
   })

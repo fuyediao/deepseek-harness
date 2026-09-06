@@ -1,8 +1,33 @@
 /**
- * GeoCRM Models-card filtering: hide inherited or customized rows whose
- * vendor has no key, using the vendor prefixes from a live discovery list.
+ * GeoCRM Models-card helpers: vendor prefixes, combined labels, and the
+ * Not Configured sentinel shared with Host discovery.
  * @module dsh-client-ui-settings-models/geocrm-keyed-models
  */
+
+/**
+ * Catalog `description` that means GeoCRM Settings has no BYOK key.
+ * Keep this literal in sync with `GEOCRM_NOT_CONFIGURED` in
+ * `dsh-client-ui-model-selection` and `GEOCRM_NOT_CONFIGURED_DESCRIPTION`
+ * in `dsh-llm-geocrm`.
+ */
+export const GEOCRM_NOT_CONFIGURED = 'geocrm:not-configured'
+
+/** Vendor labels matching GeoCRM Electron's combined picker string. */
+const VENDOR_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  chatgpt: 'OpenAI',
+  openai: 'OpenAI',
+  gemini: 'Google',
+  claude: 'Anthropic',
+  anthropic: 'Anthropic',
+  grok: 'xAI',
+  deepseek: 'DeepSeek',
+  mistral: 'Mistral',
+  moonshot: 'Moonshot',
+  minimax: 'MiniMax',
+  zhipu: 'ZhiPu',
+  perplexity: 'Perplexity',
+  stepfun: 'StepFun',
+}
 
 /** One model row that may carry a composite picker id. */
 export interface GeocrmKeyedModelRow {
@@ -86,4 +111,40 @@ export function visibleGeocrmModels<T extends GeocrmKeyedModelRow>(
     return models.filter(model => geocrmModelId(model).length === 0)
   }
   return filterGeocrmModelsByVendors(models, presence.vendors)
+}
+
+/**
+ * Brand label for a GeoCRM vendor slug, matching GeoCRM Electron.
+ * @param provider - catalog provider id (`chatgpt`, `deepseek`, …).
+ * @returns a display name such as `OpenAI`.
+ */
+export function geocrmVendorDisplayName(provider: string): string {
+  const known = VENDOR_DISPLAY_NAMES[provider]
+  if (known !== undefined) return known
+  return provider
+    .split(/[-_]/)
+    .filter(part => part.length > 0)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+/**
+ * Combined vendor + model label (`OpenAI · GPT-5.6 Sol`).
+ * @param modelId - composite picker id.
+ * @param modelName - catalog display name.
+ * @returns the GeoCRM Electron combined label.
+ */
+export function geocrmCatalogLabel(modelId: string, modelName: string): string {
+  const vendor = geocrmVendorPrefix(modelId)
+  if (vendor.length === 0) return modelName
+  return `${geocrmVendorDisplayName(vendor)} \u00b7 ${modelName}`
+}
+
+/**
+ * Whether a discovered row is a GeoCRM vendor with no key.
+ * @param model - discovery candidate.
+ * @returns true when the row should show Not Configured.
+ */
+export function isGeocrmCatalogNotConfigured(model: { readonly description?: string }): boolean {
+  return model.description === GEOCRM_NOT_CONFIGURED
 }

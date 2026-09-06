@@ -289,6 +289,8 @@ export interface LlmDiscoveredModel {
   id: string
   /** Human-readable name when the endpoint supplies one. */
   name?: string
+  /** Optional distinction from otherwise similar models. */
+  description?: string
   /** Maximum combined request and response context, when disclosed. */
   contextWindow?: number
   /** Maximum output tokens, when disclosed. */

@@ -207,7 +207,7 @@ describe('ui-model-selection dual entry', () => {
     b.mint('s1')
     const options = await b.contribution().ui.options(projection('s1'), new AbortController().signal)
     expect(options.map((o: SelectOption) => [o.label, o.detail])).toEqual([
-      ['ChatGPT \u00b7 GPT-5.6 Sol', 'ChatGPT \u00b7 Flagship'],
+      ['OpenAI \u00b7 GPT-5.6 Sol', 'OpenAI \u00b7 Flagship'],
       ['DeepSeek \u00b7 DeepSeek V4 Flash', 'DeepSeek'],
     ])
   })
@@ -231,8 +231,8 @@ describe('ui-model-selection dual entry', () => {
     b.mint('s1')
     const options = await b.contribution().ui.options(projection('s1'), new AbortController().signal)
     expect(options.map((o: SelectOption) => [o.label, o.detail])).toEqual([
-      ['ChatGPT \u00b7 GPT-5.6 Sol', 'ChatGPT'],
-      ['Claude \u00b7 Opus 5', 'Claude \u00b7 未设定'],
+      ['OpenAI \u00b7 GPT-5.6 Sol', 'OpenAI'],
+      ['Anthropic \u00b7 Opus 5', 'Anthropic \u00b7 未设定'],
     ])
     expect(options[0]).toMatchObject({ active: true })
   })

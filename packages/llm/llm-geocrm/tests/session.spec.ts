@@ -238,6 +238,20 @@ describe('resolveLiveSessionToken', () => {
     })).resolves.toBe(near)
   })
 
+  it('throws AUTH when an expired JWT has no refresh token', async () => {
+    const expired = jwtWith({ exp: (now - 1_000) / 1000 })
+    await expect(resolveLiveSessionToken({
+      origin: 'http://127.0.0.1:3001',
+      apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
+      now,
+      store: {
+        resolve: (ref) => Promise.resolve(
+          ref === 'GEOCRM_HARNESS_TOKEN' ? { value: expired } : undefined,
+        ),
+      },
+    })).rejects.toMatchObject({ code: 'AUTH', message: /sign in again/ })
+  })
+
   it('throws AUTH when an expired JWT cannot be refreshed', async () => {
     const expired = jwtWith({ exp: (now - 1_000) / 1000 })
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({

@@ -703,3 +703,104 @@ select.input {
   line-height: 20px;
   text-align: center;
 }
+
+.geocrmCatalog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.geocrmCatalogHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.geocrmCatalogToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.geocrmCatalogSearch {
+  flex: 1 1 auto;
+}
+
+.geocrmCatalogList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.geocrmCatalogRow {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 2px;
+}
+
+.geocrmCatalogLabel,
+.geocrmCatalogLabelMuted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.geocrmCatalogLabelMuted {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.geocrmCatalogBadge {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+}
+
+.geocrmSwitch {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  width: 36px;
+  height: 22px;
+  padding: 2px;
+  border: none;
+  border-radius: 999px;
+  background: var(--dsw-alias-interactive-bg-hover-solid);
+  cursor: pointer;
+  justify-self: end;
+}
+
+.geocrmSwitch[aria-checked='true'] {
+  background: var(--dsw-alias-label-primary);
+}
+
+.geocrmSwitch:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.geocrmSwitchThumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-module-platform);
+  transform: translateX(0);
+  transition: transform 120ms ease;
+}
+
+.geocrmSwitch[aria-checked='true'] .geocrmSwitchThumb {
+  transform: translateX(14px);
+}

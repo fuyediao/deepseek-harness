@@ -48,9 +48,11 @@ export {
   parseCatalogResponse,
   resolveAdvisoryModels,
   resolveGeoCrmRoute,
+  settingsModelAllowlist,
 } from './catalog.ts'
 export {
   filterByKeyPresence,
+  markByKeyPresence,
   parseConfiguredList,
   parseConfiguredProviders,
   parseKeyPresence,

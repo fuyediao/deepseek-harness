@@ -11,7 +11,7 @@ import {
 
 describe('vendorDisplayName', () => {
   it('uses brand names for known slugs and title-cases the rest', () => {
-    expect(vendorDisplayName('chatgpt')).toBe('ChatGPT')
+    expect(vendorDisplayName('chatgpt')).toBe('OpenAI')
     expect(vendorDisplayName('deepseek')).toBe('DeepSeek')
     expect(vendorDisplayName('custom_vendor')).toBe('Custom Vendor')
     expect(vendorDisplayName('')).toBe('')
@@ -40,7 +40,7 @@ describe('isGeocrmNotConfigured', () => {
 describe('geocrmCombinedLabel', () => {
   it('prefixes GeoCRM composite ids and leaves other routes unchanged', () => {
     expect(geocrmCombinedLabel('chatgpt:gpt-5.6-sol', 'GPT-5.6 Sol', 'geocrm'))
-      .toBe('ChatGPT \u00b7 GPT-5.6 Sol')
+      .toBe('OpenAI \u00b7 GPT-5.6 Sol')
     expect(geocrmCombinedLabel('bare', 'Bare', 'geocrm')).toBe('Bare')
     expect(geocrmCombinedLabel('chatgpt:gpt-5.6-sol', 'GPT-5.6 Sol', 'deepseek-official'))
       .toBe('GPT-5.6 Sol')
@@ -77,10 +77,10 @@ describe('presentGeocrmCatalog', () => {
       ],
     }]
     expect(presentGeocrmCatalog(groups).map(group => [group.key, group.routeId, group.name])).toEqual([
-      ['geocrm:chatgpt', 'geocrm', 'ChatGPT'],
-      ['geocrm:gemini', 'geocrm', 'Gemini'],
-      ['geocrm:claude', 'geocrm', 'Claude'],
-      ['geocrm:grok', 'geocrm', 'Grok'],
+      ['geocrm:chatgpt', 'geocrm', 'OpenAI'],
+      ['geocrm:gemini', 'geocrm', 'Google'],
+      ['geocrm:claude', 'geocrm', 'Anthropic'],
+      ['geocrm:grok', 'geocrm', 'xAI'],
       ['geocrm:deepseek', 'geocrm', 'DeepSeek'],
       ['geocrm:zhipu', 'geocrm', 'ZhiPu'],
       ['geocrm', 'geocrm', 'GeoCRM'],

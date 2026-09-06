@@ -171,14 +171,16 @@ export async function resolveLiveSessionToken(
   const access = await readSecret(request, accessRef)
   if (access === undefined) return undefined
   const refresh = await readSecret(request, refreshRef)
-  if (refresh === undefined || !shouldRefreshAccessToken(access, now)) return access
+  if (refresh === undefined || !shouldRefreshAccessToken(access, now)) {
+    return usableAccessToken(access, refresh, now)
+  }
 
   return await withRefreshLock(async () => {
     const latestAccess = await readSecret(request, accessRef)
     if (latestAccess === undefined) return undefined
     const latestRefresh = await readSecret(request, refreshRef)
     if (latestRefresh === undefined || !shouldRefreshAccessToken(latestAccess, now)) {
-      return latestAccess
+      return usableAccessToken(latestAccess, latestRefresh, now)
     }
     try {
       const next = await refreshGeoCrmSession(request.origin, latestRefresh, request.signal)
@@ -196,6 +198,26 @@ export async function resolveLiveSessionToken(
       return latestAccess
     }
   })
+}
+
+/**
+ * Refuse an expired access JWT when no refresh token can rotate it.
+ * A still-valid access token is returned even without a refresh token.
+ * @param access - stored access JWT.
+ * @param refresh - stored refresh token, when one exists.
+ * @param now - clock in milliseconds.
+ * @returns the access token when it can still be sent.
+ */
+function usableAccessToken(
+  access: string,
+  refresh: string | undefined,
+  now: number,
+): string {
+  const expiry = jwtExpiryMs(access)
+  if (refresh === undefined && expiry !== undefined && expiry <= now) {
+    throw new GeoCrmSessionError('GeoCRM session expired; sign in again on the Models page')
+  }
+  return access
 }
 
 /**

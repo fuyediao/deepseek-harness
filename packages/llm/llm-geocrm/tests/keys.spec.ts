@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   filterByKeyPresence,
+  markByKeyPresence,
   parseConfiguredList,
   parseConfiguredProviders,
   parseKeyPresence,
@@ -92,5 +93,19 @@ describe('filterByKeyPresence', () => {
       { id: 'flash', provider: 'deepseek' },
     ])
     expect(filterByKeyPresence(rows, new Set())).toEqual([])
+  })
+})
+
+describe('markByKeyPresence', () => {
+  it('stamps configured without dropping unkeyed vendors', () => {
+    const rows = [
+      { id: 'sol', provider: 'chatgpt' },
+      { id: 'opus', provider: 'claude' },
+    ]
+    expect(markByKeyPresence(rows, null)).toEqual(rows)
+    expect(markByKeyPresence(rows, new Set(['openai']))).toEqual([
+      { id: 'sol', provider: 'chatgpt', configured: true },
+      { id: 'opus', provider: 'claude', configured: false },
+    ])
   })
 })

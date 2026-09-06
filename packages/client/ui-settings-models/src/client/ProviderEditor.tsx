@@ -1,7 +1,7 @@
 /**
  * One provider's editor card, hand-written per adapter family: the primary
  * field is a single write-only **API key** input except for GeoCRM, which
- * shows the stored window session and the model list (the page never asks for an
+ * shows the stored window session and the live catalog (the page never asks for an
  * environment-variable name — a typed key stores through `credentials/set`
  * under the profile's reference, deriving `<ROUTE>_API_KEY` when the profile
  * has none. The pi-ai profile records that derivation as `apiKeyEnv` only when
@@ -35,6 +35,7 @@ import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { GEOCRM_DEFAULT_ORIGIN, resolveCardOrigin } from './geocrm-auth.ts'
 import { GeoCrmSignIn } from './GeoCrmSignIn.tsx'
+import { GeoCrmCatalogEditor } from './GeoCrmCatalogEditor.tsx'
 import { ModelListEditor } from './ModelListEditor.tsx'
 import { deriveKeyRef, protocolChoices } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
@@ -393,12 +394,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
         {family === 'geocrm' ? null : keyField}
         {family === 'geocrm'
           ? (
-            <ModelListEditor
+            <GeoCrmCatalogEditor
               {...catalogProps}
               probe={probe}
-              probeBlocked={keyFailure}
               operations={operations}
-              hideUnkeyedVendors
             />
           )
           : null}

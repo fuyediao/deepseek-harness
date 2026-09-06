@@ -7,7 +7,7 @@
 /**
  * Catalog `description` the composer treats as "no vendor key in GeoCRM".
  * Keep this literal in sync with `GEOCRM_NOT_CONFIGURED` in
- * `dsh-client-ui-model-selection`.
+ * `dsh-client-ui-model-selection` and `dsh-client-ui-settings-models`.
  */
 export const GEOCRM_NOT_CONFIGURED_DESCRIPTION = 'geocrm:not-configured'
 
@@ -195,11 +195,29 @@ export function catalogEntriesToModels(
 export function catalogEntriesToDiscovered(entries: readonly GeoCrmCatalogEntry[]): {
   id: string
   name?: string
+  description?: string
 }[] {
   return entries.map(entry => ({
     id: encodeCompositeModelId(entry.provider, entry.id),
     ...entry.labelEn === undefined ? {} : { name: entry.labelEn },
+    ...entry.configured === false ? { description: GEOCRM_NOT_CONFIGURED_DESCRIPTION } : {},
   }))
+}
+
+/**
+ * Treat the settings `models` array as a picker allowlist only after it
+ * differs from the adapter default flagships.
+ * @param models - resolved advisory catalog.
+ * @returns composite ids to keep, or `null` to leave the live catalog uncut.
+ */
+export function settingsModelAllowlist(
+  models: readonly GeoCrmCatalogModel[],
+): ReadonlySet<string> | null {
+  const defaults = new Set(DEFAULT_MODELS.map(model => model.id))
+  if (models.length === defaults.size && models.every(model => defaults.has(model.id))) {
+    return null
+  }
+  return new Set(models.map(model => model.id))
 }
 
 /**
