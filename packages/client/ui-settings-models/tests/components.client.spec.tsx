@@ -1117,6 +1117,209 @@ describe('ModelsSection', () => {
     expect(unset).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH')
   })
 
+  it('hides GeoCRM adapter defaults whose vendor has no key', async () => {
+    const { face } = scriptedFace()
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
+      { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+    ])))
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+      baseURL: Schema.string(),
+      models: Schema.array(Schema.object({
+        id: Schema.string().required(),
+        name: Schema.string(),
+      })).default([
+        { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+        { id: 'gemini:gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
+        { id: 'claude:claude-opus-5', name: 'Opus 5' },
+        { id: 'grok:grok-4.5', name: 'Grok 4.5' },
+        { id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+      ]),
+    })
+    const namespace: SettingsNamespaceView = {
+      ns: 'llm-geocrm',
+      schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+      value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
+      applies: 'live',
+      secrets: [],
+      revision: 0,
+    }
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    await screen.findByText(en.modelsKeyed)
+    const ids = screen.getAllByLabelText<HTMLInputElement>(new RegExp(en.modelId))
+      .map(input => input.value)
+    expect(ids).toEqual(['chatgpt:gpt-5.6-sol'])
+    expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
+    expect(screen.queryByText(en.fetchTitle)).toBeNull()
+  })
+
+  it('keeps GeoCRM adapter defaults when key presence cannot be read', async () => {
+    const { face } = scriptedFace()
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteFail('no', 'gateway/internal')))
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+      models: Schema.array(Schema.object({
+        id: Schema.string().required(),
+        name: Schema.string(),
+      })).default([
+        { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+        { id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+      ]),
+    })
+    const namespace: SettingsNamespaceView = {
+      ns: 'llm-geocrm',
+      schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+      value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
+      applies: 'live',
+      secrets: [],
+      revision: 0,
+    }
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    await screen.findByText(en.modelsInherited)
+    expect(screen.getByDisplayValue('chatgpt:gpt-5.6-sol')).toBeTruthy()
+    expect(screen.getByDisplayValue('deepseek:deepseek-v4-flash')).toBeTruthy()
+  })
+
+  it('drops an in-flight GeoCRM presence probe when the card unmounts', async () => {
+    const { face } = scriptedFace()
+    let finish!: (value: ReturnType<typeof remoteOk>) => void
+    face.llm.discoverModels = vi.fn(() => new Promise((resolve) => {
+      finish = resolve
+    }))
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+      models: Schema.array(Schema.object({
+        id: Schema.string().required(),
+        name: Schema.string(),
+      })).default([{ id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' }]),
+    })
+    const namespace: SettingsNamespaceView = {
+      ns: 'llm-geocrm',
+      schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+      value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
+      applies: 'live',
+      secrets: [],
+      revision: 0,
+    }
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    const view = render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    expect(screen.getByText(en.fetching)).toBeTruthy()
+    expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
+    view.unmount()
+    await act(async () => {
+      finish(remoteOk([{ id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' }]))
+    })
+  })
+
+  it('hides unkeyed rows from a customized GeoCRM catalog', async () => {
+    const { face } = scriptedFace()
+    const models = [
+      { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+      { id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+    ]
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
+      { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+    ])))
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+      models: Schema.array(Schema.object({
+        id: Schema.string().required(),
+        name: Schema.string(),
+      })),
+    })
+    const namespace: SettingsNamespaceView = {
+      ns: 'llm-geocrm',
+      schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+      value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN', models },
+      user: { models },
+      applies: 'live',
+      secrets: [],
+      revision: 0,
+    }
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    await screen.findByText(en.modelsCustomized)
+    expect(screen.getByDisplayValue('chatgpt:gpt-5.6-sol')).toBeTruthy()
+    expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
+  })
+
+  it('shows an empty GeoCRM catalog when no vendor has a key', async () => {
+    const { face } = scriptedFace()
+    face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([])))
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+      models: Schema.array(Schema.object({
+        id: Schema.string().required(),
+        name: Schema.string(),
+      })).default([{ id: 'deepseek:deepseek-v4-flash', name: 'DeepSeek V4 Flash' }]),
+    })
+    const namespace: SettingsNamespaceView = {
+      ns: 'llm-geocrm',
+      schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+      value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
+      applies: 'live',
+      secrets: [],
+      revision: 0,
+    }
+    const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')
+    render(<ProviderEditor
+      provider="geocrm"
+      displayName="GeoCRM"
+      namespace={namespace}
+      schema={settingsSchema}
+      settingsPath={[]}
+      operations={operationsWith(face)}
+      t={t}
+      readOnly={false}
+      onClose={() => {}}
+    />)
+    await screen.findByText(en.modelsKeyed)
+    expect(screen.getByText(en.modelsEmpty)).toBeTruthy()
+    expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
+  })
+
   it('rejects an invalid draft before writing', async () => {
     const { mutate } = await mountDeepSeekCard()
     fireEvent.click(screen.getByText(en.customized))

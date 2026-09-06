@@ -12,13 +12,22 @@
  * A provider that cannot be interrogated (an unreachable endpoint, a protocol
  * with no readable listing) is not a dead end: the failure is shown next to the
  * rows the user can still fill in by hand.
+ *
+ * GeoCRM also asks discovery on open and hides rows whose vendor has no key,
+ * so the adapter-default flagships do not stay listed beside a signed-in
+ * session that only has some BYOK keys.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { LlmDiscoveredModel } from '@deepseek-ai/dsh-api-remotes/client'
+import type { LlmDiscoveredModel, LlmModelDiscoveryRequest } from '@deepseek-ai/dsh-api-remotes/client'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { formatCapacity, parseCapacity } from './DeepSeekModelsEditor.tsx'
+import {
+  geocrmVendorsFromIds,
+  visibleGeocrmModels,
+  type GeocrmVendorPresence,
+} from './geocrm-keyed-models.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { DeepSeekModelDraft } from './DeepSeekModelsEditor.tsx'
 import type { en } from './locales.ts'
@@ -60,6 +69,20 @@ export interface ProbeTarget {
   apiKey?: string
 }
 
+/**
+ * Build the Host discovery payload from the live form.
+ * @param probe - endpoint facts as the card currently shows them.
+ * @returns the interrogation request, omitting empty optional fields.
+ */
+function discoveryRequestOf(probe: ProbeTarget): LlmModelDiscoveryRequest {
+  return {
+    ...probe.provider === undefined ? {} : { provider: probe.provider },
+    ...probe.baseURL === undefined || probe.baseURL.length === 0 ? {} : { baseURL: probe.baseURL },
+    ...probe.api === undefined ? {} : { api: probe.api },
+    ...probe.apiKey === undefined ? {} : { apiKey: probe.apiKey },
+  }
+}
+
 /** Props of {@link ModelListEditor}. */
 export interface ModelListEditorProps {
   /** The rows as currently drafted. */
@@ -85,6 +108,12 @@ export interface ModelListEditorProps {
   t: (key: keyof typeof en) => string
   /** Disable every control (read-only deployment or a pending write). */
   disabled: boolean
+  /**
+   * Hide inherited or customized rows whose vendor prefix is absent from a
+   * live discovery. The GeoCRM card sets this so adapter-default flagships
+   * without a key do not stay listed.
+   */
+  hideUnkeyedVendors?: boolean
 }
 
 /** Disclosure chevron; rotates to point down while its row is open. */
@@ -158,11 +187,16 @@ function adopt(candidate: LlmDiscoveredModel): ModelDraft {
  */
 export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const { models, onChange, probe, operations, t, disabled } = props
+  const hideUnkeyed = props.hideUnkeyedVendors === true
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<string | undefined>(undefined)
+  const [presence, setPresence] = useState<GeocrmVendorPresence>(
+    () => hideUnkeyed ? { status: 'loading' } : { status: 'unknown' },
+  )
   const [candidates, setCandidates] = useState<readonly LlmDiscoveredModel[] | undefined>(undefined)
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
   const [candidateQuery, setCandidateQuery] = useState('')
+  const catalog = visibleGeocrmModels(models, hideUnkeyed, presence)
   // Rows carry an id and a name; capacities are the exception, so they stay
   // folded until asked for rather than crowding every row with four inputs.
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set())
@@ -173,6 +207,24 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   // FIELD: a single buffer would be displaced by editing any other field, and
   // the abandoned one would render its stored NaN as the literal `NaN`.
   const [editing, setEditing] = useState<ReadonlyMap<string, string>>(new Map())
+
+  useEffect(() => {
+    if (!hideUnkeyed) {
+      setPresence({ status: 'unknown' })
+      return
+    }
+    let cancelled = false
+    setPresence({ status: 'loading' })
+    void operations.discoverModels(probe.settingsNs, discoveryRequestOf(probe)).then((answer) => {
+      if (cancelled) return
+      if (answer.kind === 'refused') {
+        setPresence({ status: 'unknown' })
+        return
+      }
+      setPresence({ status: 'known', vendors: geocrmVendorsFromIds(answer.models.map(model => model.id)) })
+    })
+    return () => { cancelled = true }
+  }, [hideUnkeyed, operations, probe.settingsNs, probe.provider, probe.baseURL, probe.api, probe.apiKey])
 
   /** Buffer key for one capacity field; the row half moves when rows do. */
   const bufferKey = (index: number, field: CapacityField): string => `${String(index)}:${field}`
@@ -210,7 +262,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   }
 
   const patch = (index: number, next: Record<string, string | number | undefined>): void => {
-    onChange(models.map((model, at) => {
+    onChange(catalog.map((model, at) => {
       if (at !== index) return model
       // Rebuilt rather than spread over: an emptied optional field has to leave
       // the profile, not be stored as a value its schema would reject.
@@ -230,12 +282,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
     setBusy(true)
     setFailure(undefined)
     try {
-      const answer = await operations.discoverModels(probe.settingsNs, {
-        ...probe.provider === undefined ? {} : { provider: probe.provider },
-        ...probe.baseURL === undefined || probe.baseURL.length === 0 ? {} : { baseURL: probe.baseURL },
-        ...probe.api === undefined ? {} : { api: probe.api },
-        ...probe.apiKey === undefined ? {} : { apiKey: probe.apiKey },
-      })
+      const answer = await operations.discoverModels(probe.settingsNs, discoveryRequestOf(probe))
       if (answer.kind === 'refused') {
         setFailure(answer.message)
         return
@@ -247,7 +294,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
       }
       // Everything already configured starts unchecked, so adopting a
       // selection never silently rewrites a capacity the user corrected.
-      const known = new Set(models.map(model => textOf(model, 'id')))
+      const known = new Set(catalog.map(model => textOf(model, 'id')))
       setCandidateQuery('')
       setCandidates(found)
       setPicked(new Set(found.filter(model => !known.has(model.id)).map(model => model.id)))
@@ -265,7 +312,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const adoptPicked = (): void => {
     /* v8 ignore next -- the dialog only renders with candidates loaded */
     if (candidates === undefined) return
-    const byId = new Map(models.map(model => [textOf(model, 'id'), model]))
+    const byId = new Map(catalog.map(model => [textOf(model, 'id'), model]))
     for (const candidate of candidates) {
       if (!picked.has(candidate.id)) continue
       // A row the user already tuned wins over the provider's own numbers.
@@ -309,16 +356,25 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   // A route the adapter already describes answers without an endpoint; only a
   // draft with neither has nothing to ask about.
   const askable = probe.provider !== undefined || (probe.baseURL !== undefined && probe.baseURL.length > 0)
+  const catalogMeta = props.overridden === undefined
+    ? undefined
+    : props.overridden
+      ? t('modelsCustomized')
+      : hideUnkeyed && presence.status === 'loading'
+        ? t('fetching')
+        : hideUnkeyed && presence.status === 'known'
+          ? t('modelsKeyed')
+          : t('modelsInherited')
   return (
     <section className={styles['modelCatalog']} aria-label={t('models')}>
       <div className={styles['modelListHead']}>
         <div className={styles['modelCatalogHeading']}>
           <span className={styles['modelCatalogTitle']}>{t('models')}</span>
-          {props.overridden === undefined
+          {catalogMeta === undefined
             ? null
             : (
               <span className={styles['modelCatalogMeta']}>
-                {props.overridden ? t('modelsCustomized') : t('modelsInherited')}
+                {catalogMeta}
               </span>
             )}
         </div>
@@ -346,8 +402,10 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
           {busy ? t('fetching') : t('fetchModels')}
         </button>
       </div>
-      {models.length === 0 ? <p className={styles['modelEmpty']}>{t('modelsEmpty')}</p> : null}
-      {models.map((model, index) => (
+      {presence.status === 'loading' && hideUnkeyed
+        ? null
+        : catalog.length === 0 ? <p className={styles['modelEmpty']}>{t('modelsEmpty')}</p> : null}
+      {catalog.map((model, index) => (
         <div key={index} className={styles['modelEntry']}>
           <div className={styles['modelRow']}>
             <input
@@ -385,7 +443,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
               title={t('removeModel')}
               disabled={disabled}
               onClick={() => {
-                onChange(models.filter((_model, at) => at !== index))
+                onChange(catalog.filter((_model, at) => at !== index))
                 // Both stores are keyed by position, so every row after this
                 // one shifts down and would otherwise inherit its neighbour's
                 // state — a different row's capacities popping open, or its
@@ -442,7 +500,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
         type="button"
         className={styles['addModelButton']}
         disabled={disabled}
-        onClick={() => { onChange([...models, { id: '' }]) }}
+        onClick={() => { onChange([...catalog, { id: '' }]) }}
       >
         {t('addModel')}
       </button>

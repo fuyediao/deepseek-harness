@@ -398,6 +398,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
               probe={probe}
               probeBlocked={keyFailure}
               operations={operations}
+              hideUnkeyedVendors
             />
           )
           : null}

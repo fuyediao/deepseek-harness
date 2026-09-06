@@ -208,8 +208,38 @@ describe('GeoCrmAdapter', () => {
     expect(models.map(model => model.id)).toContain('deepseek:deepseek-v4-flash')
   })
 
+  it('discovers with the stored session token when the draft has no key', async () => {
+    const server = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/settings/configured') {
+        response.end(JSON.stringify({ configured: ['openai'] }))
+        return
+      }
+      response.end(JSON.stringify({
+        models: [
+          { id: 'gpt-5.6-sol', provider: 'chatgpt', labelEn: 'Sol' },
+          { id: 'deepseek-v4-flash', provider: 'deepseek', labelEn: 'Flash' },
+        ],
+      }))
+    })
+    servers.push(server)
+    const discovered = await adapterOf(server.origin).discover({ baseURL: server.origin })
+    expect(discovered.map(model => model.id)).toEqual(['chatgpt:gpt-5.6-sol'])
+  })
+
   it('returns static flagships when discovery has no token', async () => {
-    const adapter = adapterOf('http://127.0.0.1:9')
+    const adapter = new GeoCrmAdapter({
+      options: () => connection('http://127.0.0.1:9'),
+      resolveApiKey: () => Promise.reject(new LlmError('missing', 'MISSING_CREDENTIAL')),
+    })
+    const discovered = await adapter.discover({})
+    expect(discovered.map(model => model.id)).toContain('chatgpt:gpt-5.6-sol')
+  })
+
+  it('returns static flagships when the stored token is empty', async () => {
+    const adapter = new GeoCrmAdapter({
+      options: () => connection('http://127.0.0.1:9'),
+      resolveApiKey: () => Promise.resolve(''),
+    })
     const discovered = await adapter.discover({})
     expect(discovered.map(model => model.id)).toContain('chatgpt:gpt-5.6-sol')
   })

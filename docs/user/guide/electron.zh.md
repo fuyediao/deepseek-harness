@@ -10,7 +10,7 @@
 
 窗口会先打开 GeoCRM Harness 登录页。标题栏、侧栏和新会话显示 GeoCRM Harness。请先用 Google 登录，或用工号或邮箱登录，然后才能使用会话界面。在调用目录的 `.env` 里写 GeoCRM API 源站：`GEOCRM_BASE_URL=https://api.example.com` 或 `GEOCRM_DEPLOYMENT_DOMAIN=example.com`（与 GeoCRM Electron 的 `VITE_DEPLOYMENT_DOMAIN` 使用同一主机名）。没有该文件时保持 `http://127.0.0.1:3001`。已存储的 `GEOCRM_HARNESS_TOKEN` 会跳过该页。账号需要 `desktop_agent`。从**设置 → 模型**退出登录会回到该页。供应商 API 密钥留在 GeoCRM 设置中。密码或 Google 登录会保持会话；Host 会在访问 JWT 过期前刷新。`geocrm` 路由与 GeoCRM CRM 工具会立即可用，不需要重启应用。还没有保存的工作区时，**选择工作区**会打开操作系统文件夹对话框。
 
-composer 模型菜单只列出在 GeoCRM 设置中已有密钥的供应商（按 ChatGPT、Gemini、Claude、Grok、DeepSeek 及允许名单其余项的顺序）。没有密钥的供应商（包括 DeepSeek）在补上密钥之前不会出现。设置 → 模型 不会再添加第二个 LLM 提供方。[模型配置指南](./providers.zh.md)介绍 Web UI 的 DeepSeek 卡片以及自定义 OpenAI 兼容端点。
+composer 模型菜单和「设置 → 模型」目录只列出在 GeoCRM 设置中已有密钥的供应商（按 ChatGPT、Gemini、Claude、Grok、DeepSeek 及允许名单其余项的顺序）。没有密钥的供应商（包括 DeepSeek）在补上密钥之前不会出现。设置 → 模型 不会再添加第二个 LLM 提供方。[模型配置指南](./providers.zh.md)介绍 Web UI 的 DeepSeek 卡片以及自定义 OpenAI 兼容端点。
 
 ## 选择工作区
 

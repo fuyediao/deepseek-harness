@@ -163,8 +163,9 @@ export class GeoCrmAdapter extends LlmAdapter {
 
   /**
    * Interrogate `GET /ai/models?client=electron` for one draft endpoint.
-   * A missing token returns the static flagship list so the card can still
-   * show models before a session token is pasted.
+   * A missing draft token uses the stored session token. When that is also
+   * missing, the static flagship list is the answer so the card can still
+   * show models before sign-in.
    * @param request - draft endpoint and optional one-shot token.
    * @param signal - caller cancellation.
    * @returns discovered composite model ids in catalog order.
@@ -174,12 +175,29 @@ export class GeoCrmAdapter extends LlmAdapter {
     signal?: AbortSignal,
   ): Promise<readonly LlmDiscoveredModel[]> {
     const origin = normalizeGeoCrmOrigin(request.baseURL ?? this.config.options().baseURL)
-    if (request.apiKey === undefined || request.apiKey.length === 0) {
+    const token = await this.discoveryToken(request)
+    if (token === undefined) {
       return catalogEntriesToDiscovered(STATIC_FLAGSHIP_MODELS)
     }
-    const entries = await this.fetchCatalog(origin, request.apiKey, signal)
-    const configured = await this.fetchConfiguredProviders(origin, request.apiKey)
+    const entries = await this.fetchCatalog(origin, token, signal)
+    const configured = await this.fetchConfiguredProviders(origin, token)
     return catalogEntriesToDiscovered(filterByKeyPresence(entries, configured))
+  }
+
+  /**
+   * Token for one discovery: a key typed on the card, else the stored session.
+   * @param request - draft interrogation payload.
+   * @returns a usable Bearer token, or `undefined` when none is stored.
+   */
+  private async discoveryToken(request: LlmModelDiscoveryRequest): Promise<string | undefined> {
+    if (request.apiKey !== undefined && request.apiKey.length > 0) return request.apiKey
+    try {
+      const token = await this.config.resolveApiKey(this.config.options())
+      return token.length === 0 ? undefined : token
+    } catch {
+      // Draft interrogation without a stored session still shows flagships.
+      return undefined
+    }
   }
 
   /**
