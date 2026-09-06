@@ -90,6 +90,46 @@ export function parseKeyPresence(body: unknown): ReadonlySet<string> | null {
 }
 
 /**
+ * Build a keyed-vendor set from per-row `configured` flags.
+ * Every row must carry a boolean; a mixed or unstamped catalog is unknown.
+ * @param entries - live catalog rows.
+ * @returns lowercase provider ids (with aliases), or `null` when unknown.
+ */
+export function configuredIdsFromEntries(
+  entries: readonly GeoCrmCatalogEntry[],
+): ReadonlySet<string> | null {
+  if (entries.length === 0) return null
+  const ids = new Set<string>()
+  for (const entry of entries) {
+    if (entry.configured === undefined) return null
+    if (!entry.configured) continue
+    for (const alias of providerKeyAliases(entry.provider)) ids.add(alias)
+  }
+  return ids
+}
+
+/**
+ * Whether this GeoCRM vendor cannot be called given known presence.
+ * Unknown presence is callable unless every matching catalog row is
+ * `configured: false`.
+ * @param provider - catalog provider id from the picker route.
+ * @param entries - live or advisory catalog rows.
+ * @param configured - provider ids that have a key, or `null` when unknown.
+ * @returns true when a Responses POST would be refused for a missing key.
+ */
+export function vendorKeyMissing(
+  provider: string,
+  entries: readonly GeoCrmCatalogEntry[],
+  configured: ReadonlySet<string> | null,
+): boolean {
+  const presence = configured ?? configuredIdsFromEntries(entries)
+  if (presence !== null) return !vendorHasConfiguredKey(provider, presence)
+  const aliases = new Set(providerKeyAliases(provider))
+  const rows = entries.filter(entry => vendorHasConfiguredKey(entry.provider, aliases))
+  return rows.length > 0 && rows.every(entry => entry.configured === false)
+}
+
+/**
  * Keep only vendors that have a GeoCRM key when presence is known.
  * `configured: false` on a catalog row is also dropped when presence is unknown.
  * @param entries - live catalog rows.

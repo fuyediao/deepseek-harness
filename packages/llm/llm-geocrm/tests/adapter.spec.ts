@@ -117,6 +117,39 @@ describe('GeoCrmAdapter', () => {
     expect(server.requests.some(request => request.url === '/ai/settings/connectivity')).toBe(false)
   })
 
+  it('lists from GET /ai/models configured without a second presence request', async () => {
+    const server = await mockGeoCrm((request, response) => {
+      if (
+        request.url === '/ai/settings/configured'
+        || request.url === '/ai/settings/connectivity'
+      ) {
+        response.statusCode = 500
+        response.end('should not ask')
+        return
+      }
+      response.end(JSON.stringify({
+        models: [
+          { id: 'gpt-5.6-sol', provider: 'chatgpt', labelEn: 'Sol', configured: true },
+          { id: 'gemini-3.8-flash', provider: 'gemini', labelEn: 'Flash', configured: false },
+        ],
+        configured: ['openai', 'chatgpt'],
+      }))
+    })
+    servers.push(server)
+    const adapter = adapterOf(server.origin)
+    expect(await adapter.listModels('geocrm')).toEqual([
+      { provider: 'geocrm', id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
+    ])
+    expect(await adapter.discover({
+      baseURL: server.origin,
+      apiKey: 'typed-jwt',
+    })).toEqual([
+      { id: 'chatgpt:gpt-5.6-sol', name: 'Sol' },
+      { id: 'gemini:gemini-3.8-flash', name: 'Flash', description: 'geocrm:not-configured' },
+    ])
+    expect(server.requests.every(request => request.url === '/ai/models?client=electron')).toBe(true)
+  })
+
   it('lists only customized allowlist ids that still have a key', async () => {
     const server = await mockGeoCrm((request, response) => {
       if (request.url === '/ai/settings/configured') {
@@ -403,6 +436,35 @@ describe('GeoCrmAdapter', () => {
       model: 'deepseek:deepseek-v4-flash',
       messages: [user('hi')],
     }))).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  })
+
+  it('refuses a stream when the catalog stamps the vendor as unkeyed', async () => {
+    const server = await mockGeoCrm((request, response) => {
+      if (request.url === '/ai/models?client=electron') {
+        response.end(JSON.stringify({
+          models: [{
+            id: 'gemini-3.8-flash',
+            provider: 'gemini',
+            labelEn: 'Flash',
+            configured: false,
+          }],
+          configured: [],
+        }))
+        return
+      }
+      response.statusCode = 500
+      response.end('should not POST')
+    })
+    servers.push(server)
+    await expect(drain(adapterOf(server.origin).stream({
+      provider: 'geocrm',
+      model: 'gemini:gemini-3.8-flash',
+      messages: [user('hi')],
+    }))).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      message: 'The selected provider has no API key.',
+    })
+    expect(server.requests.every(request => request.url === '/ai/models?client=electron')).toBe(true)
   })
 
   it('honors caller abort on the Responses POST', async () => {

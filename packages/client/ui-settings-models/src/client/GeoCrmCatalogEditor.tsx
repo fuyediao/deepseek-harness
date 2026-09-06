@@ -1,8 +1,9 @@
 /**
  * GeoCRM Models catalog: live `GET /ai/models` rows with search, vendor marks,
- * combined labels, Not Configured badges, and enable toggles. This is the
- * allowlist the composer reads after Save; it is not the adapter-default
- * id/name editor used by other families.
+ * combined labels, Not Configured badges, and enable toggles on keyed
+ * vendors. Unkeyed vendors cannot be enabled. This is the allowlist the
+ * composer reads after Save; it is not the adapter-default id/name editor
+ * used by other families.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -188,18 +189,19 @@ export function GeoCrmCatalogEditor(props: GeoCrmCatalogEditorProps): ReactNode 
               </span>
               {notConfigured
                 ? <span className={styles['geocrmCatalogBadge']}>{t('notConfigured')}</span>
-                : null}
-              <button
-                type="button"
-                role="switch"
-                className={styles['geocrmSwitch']}
-                aria-checked={on}
-                aria-label={t('catalogToggle').replace('{model}', label)}
-                disabled={disabled}
-                onClick={() => { setEnabled(model, !on) }}
-              >
-                <span className={styles['geocrmSwitchThumb']} />
-              </button>
+                : (
+                  <button
+                    type="button"
+                    role="switch"
+                    className={styles['geocrmSwitch']}
+                    aria-checked={on}
+                    aria-label={t('catalogToggle').replace('{model}', label)}
+                    disabled={disabled}
+                    onClick={() => { setEnabled(model, !on) }}
+                  >
+                    <span className={styles['geocrmSwitchThumb']} />
+                  </button>
+                )}
             </li>
           )
         })}

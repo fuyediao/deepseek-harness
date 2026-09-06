@@ -7,6 +7,7 @@ import {
   catalogEntriesToModels,
   catalogEntryName,
   encodeCompositeModelId,
+  parseCatalogPayload,
   parseCatalogResponse,
   parseCompositeModelId,
   resolveAdvisoryModels,
@@ -79,6 +80,31 @@ describe('catalog JSON', () => {
     expect(parseCatalogResponse([])).toEqual([])
     expect(parseCatalogResponse({})).toEqual([])
     expect(parseCatalogResponse({ models: {} })).toEqual([])
+  })
+
+  it('reads a top-level configured list and complete per-row flags', () => {
+    expect(parseCatalogPayload({
+      models: [
+        { id: 'sol', provider: 'chatgpt', configured: true },
+        { id: 'opus', provider: 'claude', configured: false },
+      ],
+      configured: ['OpenAI'],
+    })).toEqual({
+      entries: [
+        { id: 'sol', provider: 'chatgpt', configured: true },
+        { id: 'opus', provider: 'claude', configured: false },
+      ],
+      configured: new Set(['openai']),
+    })
+    expect(parseCatalogPayload({
+      models: [
+        { id: 'sol', provider: 'chatgpt', configured: true },
+        { id: 'opus', provider: 'claude', configured: false },
+      ],
+    }).configured).toEqual(new Set(['chatgpt', 'openai']))
+    expect(parseCatalogPayload({
+      models: [{ id: 'sol', provider: 'chatgpt' }],
+    }).configured).toBeNull()
   })
 
   it('projects catalog rows for the picker and for discovery', () => {

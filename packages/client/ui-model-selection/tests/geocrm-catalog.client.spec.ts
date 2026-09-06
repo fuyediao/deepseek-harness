@@ -5,6 +5,7 @@ import {
   geocrmCombinedLabel,
   isGeocrmNotConfigured,
   parseGeocrmCompositeId,
+  lookupCatalogModel,
   presentGeocrmCatalog,
   vendorDisplayName,
 } from '../src/client/geocrm-catalog.ts'
@@ -87,5 +88,41 @@ describe('presentGeocrmCatalog', () => {
     ])
     expect(presentGeocrmCatalog(groups).find(group => group.key === 'geocrm')?.models)
       .toEqual([{ id: 'unlisted', name: 'Unlisted' }])
+  })
+
+  it('omits GeoCRM vendors that have no key', () => {
+    const groups: ModelProviderGroup[] = [{
+      id: 'geocrm',
+      name: 'GeoCRM',
+      models: [
+        { id: 'chatgpt:gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+        {
+          id: 'gemini:gemini-3.8-flash',
+          name: 'Gemini 3.8 Flash',
+          description: GEOCRM_NOT_CONFIGURED,
+        },
+      ],
+    }]
+    expect(presentGeocrmCatalog(groups).map(group => group.key)).toEqual(['geocrm:chatgpt'])
+  })
+})
+
+describe('lookupCatalogModel', () => {
+  it('finds the raw Host row including an unconfigured vendor', () => {
+    const groups: ModelProviderGroup[] = [{
+      id: 'geocrm',
+      name: 'GeoCRM',
+      models: [{
+        id: 'gemini:gemini-3.8-flash',
+        name: 'Gemini 3.8 Flash',
+        description: GEOCRM_NOT_CONFIGURED,
+      }],
+    }]
+    expect(lookupCatalogModel(groups, {
+      provider: 'geocrm',
+      model: 'gemini:gemini-3.8-flash',
+    })?.model.id).toBe('gemini:gemini-3.8-flash')
+    expect(lookupCatalogModel(groups, null)).toBeUndefined()
+    expect(lookupCatalogModel(groups, { provider: 'geocrm', model: 'missing' })).toBeUndefined()
   })
 })

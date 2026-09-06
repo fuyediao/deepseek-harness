@@ -212,7 +212,7 @@ describe('ui-model-selection dual entry', () => {
     ])
   })
 
-  it('popup options translate the GeoCRM missing-key sentinel', async () => {
+  it('popup options omit GeoCRM vendors that have no key', async () => {
     const b = await bench({
       defaultSelection: { provider: 'geocrm', model: 'chatgpt:gpt-5.6-sol' },
       groups: [{
@@ -232,7 +232,6 @@ describe('ui-model-selection dual entry', () => {
     const options = await b.contribution().ui.options(projection('s1'), new AbortController().signal)
     expect(options.map((o: SelectOption) => [o.label, o.detail])).toEqual([
       ['OpenAI \u00b7 GPT-5.6 Sol', 'OpenAI'],
-      ['Anthropic \u00b7 Opus 5', 'Anthropic \u00b7 未设定'],
     ])
     expect(options[0]).toMatchObject({ active: true })
   })

@@ -739,7 +739,7 @@ select.input {
 
 .geocrmCatalogRow {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   min-height: 40px;

@@ -45,12 +45,14 @@ export {
   catalogEntryName,
   encodeCompositeModelId,
   parseCompositeModelId,
+  parseCatalogPayload,
   parseCatalogResponse,
   resolveAdvisoryModels,
   resolveGeoCrmRoute,
   settingsModelAllowlist,
 } from './catalog.ts'
 export {
+  configuredIdsFromEntries,
   filterByKeyPresence,
   markByKeyPresence,
   parseConfiguredList,
@@ -58,8 +60,9 @@ export {
   parseKeyPresence,
   providerKeyAliases,
   vendorHasConfiguredKey,
+  vendorKeyMissing,
 } from './keys.ts'
-export type { GeoCrmCatalogEntry, GeoCrmCatalogModel } from './catalog.ts'
+export type { GeoCrmCatalogEntry, GeoCrmCatalogModel, GeoCrmCatalogPayload } from './catalog.ts'
 export { geocrmHttpErrorCode, normalizeGeoCrmOrigin, parseGeoCrmErrorBody } from './http.ts'
 export type { GeoCrmErrorBody } from './http.ts'
 export {

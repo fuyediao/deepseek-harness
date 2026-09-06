@@ -29,7 +29,7 @@ Mount this plugin alongside `ui-conversation` and the commands package; the comp
 
 ### Model and effort
 
-Models stay grouped by provider. Composite ids on the `geocrm` route split into vendor groups (OpenAI, Google, Anthropic, xAI, then the rest) and the trigger shows `Vendor · model`; a pick still stores `provider: geocrm`. The menu shows model and effort names. GeoCRM vendors without a key are omitted from the Host catalog, so they do not appear here. Other catalog descriptions remain available to other consumers. The `/model` popup applies the selected model's default effort; the composer can then choose any advertised effort. An adapter without reasoning metadata leaves the Effort row absent; there is no arbitrary effort input.
+Models stay grouped by provider. Composite ids on the `geocrm` route split into vendor groups (OpenAI, Google, Anthropic, xAI, then the rest) and the trigger shows `Vendor · model`; a pick still stores `provider: geocrm`. The menu shows model and effort names. GeoCRM vendors without a key are omitted from the Host catalog and from these menus. A leftover current unconfigured model is labeled Not Configured on the trigger and is not selectable. Other catalog descriptions remain available to other consumers. The `/model` popup applies the selected model's default effort; the composer can then choose any advertised effort. An adapter without reasoning metadata leaves the Effort row absent; there is no arbitrary effort input.
 
 ### Unroutable sessions
 

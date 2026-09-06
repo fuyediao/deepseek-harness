@@ -262,7 +262,7 @@ describe('ModelSelect GeoCRM vendor groups', () => {
     })
   })
 
-  it('labels an unconfigured GeoCRM vendor and refuses a new pick', () => {
+  it('omits an unconfigured GeoCRM vendor from the menu', () => {
     const groups = [{
       id: 'geocrm',
       name: 'GeoCRM',
@@ -290,13 +290,12 @@ describe('ModelSelect GeoCRM vendor groups', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /OpenAI/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
-    const row = screen.getByRole('menuitemradio', { name: /未设定/ })
-    expect(row).toHaveProperty('disabled', true)
-    fireEvent.click(row)
-    expect(select).not.toHaveBeenCalled()
+    expect(screen.getByRole('menuitemradio', { name: /OpenAI/ })).toBeTruthy()
+    expect(screen.queryByRole('menuitemradio', { name: /Anthropic/ })).toBeNull()
+    expect(screen.queryByText('未设定')).toBeNull()
   })
 
-  it('keeps the current unconfigured GeoCRM model selectable', () => {
+  it('labels a leftover unconfigured current model and omits it from the menu', () => {
     const groups = [{
       id: 'geocrm',
       name: 'GeoCRM',
@@ -318,8 +317,9 @@ describe('ModelSelect GeoCRM vendor groups', () => {
       t={t}
     />)
 
-    fireEvent.click(screen.getByRole('button', { name: /Anthropic/ }))
+    expect(screen.getByRole('button', { name: /未设定/ }).textContent).toContain('Anthropic \u00b7 Opus 5')
+    fireEvent.click(screen.getByRole('button', { name: /未设定/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
-    expect(screen.getByRole('menuitemradio', { name: /未设定/ })).toHaveProperty('disabled', false)
+    expect(screen.queryByRole('menuitemradio')).toBeNull()
   })
 })

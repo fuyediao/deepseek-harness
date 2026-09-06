@@ -53,7 +53,7 @@ A request selects the route with `provider: geocrm`. Model ids are composite `pr
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-llm-geocrm) is the exhaustive source for every accepted field and its JSDoc.
 
-The token must belong to a GeoCRM user who has `desktop_agent` and BYOK keys stored in GeoCRM Settings. Put the VPS origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (same host GeoCRM Electron stores as `VITE_DEPLOYMENT_DOMAIN`). The window cover stores a refresh token from GeoCRM `POST /auth/password` (employee ID resolves first) or from desktop Google sign-in. Before a request whose access JWT is within five minutes of `exp`, this plugin calls `POST /auth/refresh`. A 401/403 is `AUTH`; a 422 `missing_api_key` is `INVALID_REQUEST` (add the vendor key in GeoCRM, not here). `listModels` asks `GET /ai/settings/configured` for which vendors have a key (DeepSeek included). If that route is absent it reads `POST /ai/settings/connectivity` the same way. Vendors without a key are omitted from the composer. Discovery returns the full catalog and stamps `geocrm:not-configured` on those rows so Settings can show Not Configured. An expired access JWT with no refresh token is `AUTH`.
+The token must belong to a GeoCRM user who has `desktop_agent` and BYOK keys stored in GeoCRM Settings. Put the VPS origin in the invoking directory `.env` as `GEOCRM_BASE_URL=https://api.example.com` or `GEOCRM_DEPLOYMENT_DOMAIN=example.com` (same host GeoCRM Electron stores as `VITE_DEPLOYMENT_DOMAIN`). The window cover stores a refresh token from GeoCRM `POST /auth/password` (employee ID resolves first) or from desktop Google sign-in. Before a request whose access JWT is within five minutes of `exp`, this plugin calls `POST /auth/refresh`. A 401/403 is `AUTH`; a 422 `missing_api_key` is `INVALID_REQUEST` (add the vendor key in GeoCRM, not here). `listModels` reads BYOK presence from `GET /ai/models` (`configured` ids or per-row flags) first, then `GET /ai/settings/configured`, then `POST /ai/settings/connectivity`. Vendors without a key are omitted from the composer. Discovery returns the full catalog and stamps `geocrm:not-configured` on those rows so Settings can show Not Configured. A Responses POST is refused locally when presence says the vendor has no key. An expired access JWT with no refresh token is `AUTH`.
 
 -----
 
@@ -74,7 +74,7 @@ The plugin is a direct-fetch adapter. `apply` registers the `geocrm` route, the 
 | [`src/session.ts`](src/session.ts) | Access/refresh rotation through `POST /auth/refresh` |
 | [`src/adapter.ts`](src/adapter.ts) | `GeoCrmAdapter`: catalog fetch, Responses POST, idle watchdog |
 | [`src/catalog.ts`](src/catalog.ts) | Composite ids, static flagships, catalog JSON |
-| [`src/keys.ts`](src/keys.ts) | BYOK key presence from `GET /ai/settings/configured` and connectivity |
+| [`src/keys.ts`](src/keys.ts) | BYOK key presence from catalog JSON, `GET /ai/settings/configured`, and connectivity |
 | [`src/translate.ts`](src/translate.ts) | Harness messages to Responses body; SSE to stream chunks |
 | [`src/http.ts`](src/http.ts) | Origin normalization and HTTP error codes |
 

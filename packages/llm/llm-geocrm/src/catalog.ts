@@ -4,6 +4,8 @@
  * @module dsh-llm-geocrm/catalog
  */
 
+import { configuredIdsFromEntries, parseConfiguredList } from './keys.ts'
+
 /**
  * Catalog `description` the composer treats as "no vendor key in GeoCRM".
  * Keep this literal in sync with `GEOCRM_NOT_CONFIGURED` in
@@ -131,6 +133,19 @@ export function resolveGeoCrmRoute(
 }
 
 /**
+ * Live `GET /ai/models` rows plus optional BYOK presence from the same body.
+ */
+export interface GeoCrmCatalogPayload {
+  /** Catalog rows in endpoint order. */
+  readonly entries: GeoCrmCatalogEntry[]
+  /**
+   * Provider ids that have a key, when the body stamps them
+   * (`configured` array or a complete set of per-row flags).
+   */
+  readonly configured: ReadonlySet<string> | null
+}
+
+/**
  * Parse the JSON body of `GET /ai/models`.
  * @param body - decoded JSON value.
  * @returns catalog rows in endpoint order; unknown or incomplete rows are dropped.
@@ -160,6 +175,20 @@ export function parseCatalogResponse(body: unknown): GeoCrmCatalogEntry[] {
     })
   }
   return entries
+}
+
+/**
+ * Parse `GET /ai/models` rows and the optional BYOK presence stamp.
+ * Prefers a top-level `configured` id list, then complete per-row flags.
+ * @param body - decoded JSON value.
+ * @returns catalog rows plus presence, or unknown presence when unstamped.
+ */
+export function parseCatalogPayload(body: unknown): GeoCrmCatalogPayload {
+  const entries = parseCatalogResponse(body)
+  return {
+    entries,
+    configured: parseConfiguredList(body) ?? configuredIdsFromEntries(entries),
+  }
 }
 
 /**

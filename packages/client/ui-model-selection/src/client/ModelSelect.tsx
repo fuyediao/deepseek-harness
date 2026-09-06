@@ -23,7 +23,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelSelectInjected } from './slots.ts'
-import { geocrmCombinedLabel, isGeocrmNotConfigured, presentGeocrmCatalog } from './geocrm-catalog.ts'
+import { geocrmCombinedLabel, isGeocrmNotConfigured, lookupCatalogModel, presentGeocrmCatalog } from './geocrm-catalog.ts'
 import css from './ModelSelect.module.css'
 
 /** Which pane the dropdown shows: the two-row root or one drilled-in list. */
@@ -65,6 +65,10 @@ export function ModelSelect(
   const id = useId()
 
   const presented = useMemo(() => presentGeocrmCatalog(state.groups), [state.groups])
+  const stored = useMemo(
+    () => lookupCatalogModel(state.groups, state.current),
+    [state.groups, state.current],
+  )
   const choices = useMemo(() => presented.flatMap(group =>
     group.models.map(model => ({
       group,
@@ -195,11 +199,14 @@ export function ModelSelect(
   }
 
   const waiting = state.current === null && state.status === 'loading'
+  const storedNotConfigured = stored !== undefined && isGeocrmNotConfigured(stored.model)
   const modelLabel = waiting
     ? t('trigger.loading')
-    : currentChoice === undefined
-      ? (state.current === null ? t('trigger.fallback') : `${state.current.provider}/${state.current.model}`)
-      : geocrmCombinedLabel(currentChoice.model.id, currentChoice.model.name, currentChoice.group.routeId)
+    : currentChoice !== undefined
+      ? geocrmCombinedLabel(currentChoice.model.id, currentChoice.model.name, currentChoice.group.routeId)
+      : stored !== undefined
+        ? `${geocrmCombinedLabel(stored.model.id, stored.model.name, stored.routeId)}${storedNotConfigured ? ` \u00b7 ${t('notConfigured')}` : ''}`
+        : (state.current === null ? t('trigger.fallback') : `${state.current.provider}/${state.current.model}`)
   const triggerLabel = effortLabel === undefined ? modelLabel : `${modelLabel} · ${effortLabel}`
   const triggerAria = waiting
     ? t('trigger.loading')
@@ -290,7 +297,6 @@ export function ModelSelect(
                       <div className={css.groupTitle} id={headingId}>{group.name}</div>
                       {group.models.map((model) => {
                         const selected = state.current?.provider === group.routeId && state.current.model === model.id
-                        const notConfigured = isGeocrmNotConfigured(model)
                         const label = geocrmCombinedLabel(model.id, model.name, group.routeId)
                         return (
                           <button
@@ -300,16 +306,13 @@ export function ModelSelect(
                             aria-checked={selected}
                             className={clsx(css.option, selected && css.selected)}
                             key={model.id}
-                            title={notConfigured ? `${label} · ${t('notConfigured')}` : label}
-                            disabled={busy || (notConfigured && !selected)}
+                            title={label}
+                            disabled={busy}
                             onClick={() => { choose({ provider: group.routeId, model: model.id }) }}
                           >
                             <span className={css.optionCopy}>
                               <span className={css.modelRow}>
                                 <span className={css.modelName}>{label}</span>
-                                {notConfigured && (
-                                  <span className={css.notConfigured}>{t('notConfigured')}</span>
-                                )}
                               </span>
                             </span>
                             <span className={css.check}>

@@ -1178,6 +1178,8 @@ describe('ModelsSection', () => {
     await screen.findByText('OpenAI \u00b7 GPT-6 Astra')
     expect(screen.getByText('Anthropic \u00b7 Fable 5.1')).toBeTruthy()
     expect(screen.getByText(en.notConfigured)).toBeTruthy()
+    expect(screen.getByRole('switch', { name: 'Show OpenAI \u00b7 GPT-6 Astra in the model menu' })).toBeTruthy()
+    expect(screen.queryByRole('switch', { name: 'Show Anthropic \u00b7 Fable 5.1 in the model menu' })).toBeNull()
     expect(screen.getByLabelText(en.catalogSearch)).toBeTruthy()
     expect(screen.queryByDisplayValue('deepseek:deepseek-v4-flash')).toBeNull()
     expect(screen.queryByText(en.fetchModels)).toBeNull()

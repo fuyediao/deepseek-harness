@@ -29,18 +29,20 @@ import {
   catalogEntriesToDiscovered,
   catalogEntriesToModels,
   encodeCompositeModelId,
-  parseCatalogResponse,
+  parseCatalogPayload,
   resolveGeoCrmRoute,
   settingsModelAllowlist,
   STATIC_FLAGSHIP_MODELS,
   type GeoCrmCatalogEntry,
   type GeoCrmCatalogModel,
+  type GeoCrmCatalogPayload,
 } from './catalog.ts'
 import {
   filterByKeyPresence,
   markByKeyPresence,
   parseConfiguredList,
   parseConfiguredProviders,
+  vendorKeyMissing,
 } from './keys.ts'
 import { geocrmHttpErrorCode, normalizeGeoCrmOrigin, parseGeoCrmErrorBody } from './http.ts'
 import { chunksFromGeoCrmEvents, parseGeoCrmSseEvent, readSseData, toGeoCrmRequest } from './translate.ts'
@@ -56,6 +58,9 @@ export const DEFAULT_BASE_URL = 'http://127.0.0.1:3001'
 
 /** Idle-watchdog code translated to harness `TIMEOUT`. */
 const STREAM_IDLE_TIMEOUT_CODE = 'LLM_STREAM_IDLE_TIMEOUT'
+
+/** GeoCRM Completer code when the selected vendor has no BYOK key. */
+const MISSING_VENDOR_KEY_MESSAGE = 'The selected provider has no API key.'
 
 /** Validated connection facts for one resolution generation. */
 export interface GeoCrmConnectionOptions {
@@ -108,11 +113,9 @@ export class GeoCrmAdapter extends LlmAdapter {
     try {
       const token = await this.config.resolveApiKey(connection)
       const origin = normalizeGeoCrmOrigin(connection.baseURL)
-      const [live, configured] = await Promise.all([
-        this.fetchCatalog(origin, token),
-        this.fetchConfiguredProviders(origin, token),
-      ])
-      const keyed = filterByKeyPresence(live, configured)
+      const live = await this.fetchCatalog(origin, token)
+      const configured = live.configured ?? await this.fetchConfiguredProviders(origin, token)
+      const keyed = filterByKeyPresence(live.entries, configured)
       const allow = settingsModelAllowlist(connection.models)
       return catalogEntriesToModels(
         provider,
@@ -138,9 +141,10 @@ export class GeoCrmAdapter extends LlmAdapter {
     _signal?: AbortSignal,
   ): Promise<LlmResolvedModelInfo> {
     const connection = this.config.options()
-    const catalog = await this.tryLiveCatalog(connection) ?? entriesFromAdvisory(connection.models)
-    const route = resolveGeoCrmRoute(model, catalog)
-    const match = catalog.find(entry => entry.provider === route.provider && entry.id === route.model)
+    const catalog = await this.tryLiveCatalog(connection)
+      ?? { entries: entriesFromAdvisory(connection.models), configured: null }
+    const route = resolveGeoCrmRoute(model, catalog.entries)
+    const match = catalog.entries.find(entry => entry.provider === route.provider && entry.id === route.model)
     const advisory = connection.models.find(entry => entry.id === model)
     return {
       provider,
@@ -194,8 +198,8 @@ export class GeoCrmAdapter extends LlmAdapter {
       return catalogEntriesToDiscovered(STATIC_FLAGSHIP_MODELS)
     }
     const entries = await this.fetchCatalog(origin, token, signal)
-    const configured = await this.fetchConfiguredProviders(origin, token)
-    return catalogEntriesToDiscovered(markByKeyPresence(entries, configured))
+    const configured = entries.configured ?? await this.fetchConfiguredProviders(origin, token)
+    return catalogEntriesToDiscovered(markByKeyPresence(entries.entries, configured))
   }
 
   /**
@@ -281,8 +285,11 @@ export class GeoCrmAdapter extends LlmAdapter {
   ): AsyncGenerator<StreamChunk> {
     const origin = normalizeGeoCrmOrigin(connection.baseURL)
     const catalog = await this.tryLiveCatalog(connection, apiKey, signal)
-      ?? entriesFromAdvisory(connection.models)
-    const route = resolveGeoCrmRoute(model, catalog)
+      ?? { entries: entriesFromAdvisory(connection.models), configured: null }
+    const route = resolveGeoCrmRoute(model, catalog.entries)
+    if (vendorKeyMissing(route.provider, catalog.entries, catalog.configured)) {
+      throw new LlmError(MISSING_VENDOR_KEY_MESSAGE, 'INVALID_REQUEST')
+    }
     const response = await this.postResponses(origin, apiKey, route, options, signal)
     if (response.body === null) {
       throw new LlmError('GeoCRM Responses response had no body', 'TRANSPORT')
@@ -301,13 +308,13 @@ export class GeoCrmAdapter extends LlmAdapter {
    * @param connection - current origin and credential reference.
    * @param apiKey - already-resolved token, when the caller has one.
    * @param signal - caller cancellation.
-   * @returns live rows, or `undefined` when the token or fetch is unavailable.
+   * @returns live rows and presence, or `undefined` when the token or fetch is unavailable.
    */
   private async tryLiveCatalog(
     connection: GeoCrmConnectionOptions,
     apiKey?: string,
     signal?: AbortSignal,
-  ): Promise<GeoCrmCatalogEntry[] | undefined> {
+  ): Promise<GeoCrmCatalogPayload | undefined> {
     try {
       const token = apiKey ?? await this.config.resolveApiKey(connection)
       return await this.fetchCatalog(normalizeGeoCrmOrigin(connection.baseURL), token, signal)
@@ -323,13 +330,13 @@ export class GeoCrmAdapter extends LlmAdapter {
    * @param origin - GeoCRM API origin.
    * @param apiKey - Supabase session JWT.
    * @param signal - caller cancellation.
-   * @returns parsed catalog rows.
+   * @returns parsed catalog rows and optional key presence from the same body.
    */
   private async fetchCatalog(
     origin: string,
     apiKey: string,
     signal?: AbortSignal,
-  ): Promise<GeoCrmCatalogEntry[]> {
+  ): Promise<GeoCrmCatalogPayload> {
     const response = await this.request(`${origin}/ai/models?client=electron`, {
       method: 'GET',
       headers: {
@@ -342,13 +349,14 @@ export class GeoCrmAdapter extends LlmAdapter {
     if (!response.ok) {
       throw await this.refuse(response, origin)
     }
-    return parseCatalogResponse(await response.json() as unknown)
+    return parseCatalogPayload(await response.json() as unknown)
   }
 
   /**
    * `GET /ai/settings/configured` (ids only), then
    * `POST /ai/settings/connectivity` if that route is absent.
-   * A failed or unrecognized body leaves presence unknown so the catalog stays listed.
+   * Used when `GET /ai/models` did not stamp presence. A failed or
+   * unrecognized body leaves presence unknown so the catalog stays listed.
    * @param origin - GeoCRM API origin.
    * @param apiKey - Supabase session JWT.
    * @returns lowercase provider ids, or `null` when presence is unknown.

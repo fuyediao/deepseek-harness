@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  configuredIdsFromEntries,
   filterByKeyPresence,
   markByKeyPresence,
   parseConfiguredList,
@@ -7,6 +8,7 @@ import {
   parseKeyPresence,
   providerKeyAliases,
   vendorHasConfiguredKey,
+  vendorKeyMissing,
 } from '../src/keys.ts'
 
 describe('providerKeyAliases', () => {
@@ -67,11 +69,45 @@ describe('parseConfiguredProviders', () => {
   })
 })
 
-describe('parseKeyPresence', () => {
-  it('prefers the configured-id list over connectivity rows', () => {
-    expect(parseKeyPresence({ configured: ['deepseek'] })).toEqual(new Set(['deepseek']))
-    expect(parseKeyPresence({ models: [{ model: 'openai' }] })).toEqual(new Set(['openai']))
-    expect(parseKeyPresence({ models: [{ id: 'x', provider: 'y' }] })).toBeNull()
+describe('configuredIdsFromEntries', () => {
+  it('requires every row to carry a boolean', () => {
+    expect(configuredIdsFromEntries([])).toBeNull()
+    expect(configuredIdsFromEntries([{ id: 'sol', provider: 'chatgpt' }])).toBeNull()
+    expect(configuredIdsFromEntries([
+      { id: 'sol', provider: 'chatgpt', configured: true },
+      { id: 'opus', provider: 'claude' },
+    ])).toBeNull()
+    expect(configuredIdsFromEntries([
+      { id: 'sol', provider: 'chatgpt', configured: true },
+      { id: 'astra', provider: 'chatgpt', configured: true },
+      { id: 'opus', provider: 'claude', configured: false },
+    ])).toEqual(new Set(['chatgpt', 'openai']))
+    expect(configuredIdsFromEntries([
+      { id: 'opus', provider: 'claude', configured: false },
+    ])).toEqual(new Set())
+  })
+})
+
+describe('vendorKeyMissing', () => {
+  it('uses a keyed set when presence is known', () => {
+    const rows = [{ id: 'flash', provider: 'gemini' }]
+    expect(vendorKeyMissing('gemini', rows, new Set(['gemini']))).toBe(false)
+    expect(vendorKeyMissing('gemini', rows, new Set())).toBe(true)
+    expect(vendorKeyMissing('chatgpt', rows, new Set(['openai']))).toBe(false)
+  })
+
+  it('treats a fully unstamped catalog as callable', () => {
+    expect(vendorKeyMissing('gemini', [{ id: 'flash', provider: 'gemini' }], null)).toBe(false)
+  })
+
+  it('refuses a vendor whose live rows are all configured:false', () => {
+    expect(vendorKeyMissing('gemini', [
+      { id: 'flash', provider: 'gemini', configured: false },
+      { id: 'pro', provider: 'gemini', configured: false },
+    ], null)).toBe(true)
+    expect(vendorKeyMissing('chatgpt', [
+      { id: 'sol', provider: 'chatgpt', configured: true },
+    ], null)).toBe(false)
   })
 })
 

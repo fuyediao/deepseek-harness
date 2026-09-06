@@ -71,7 +71,7 @@ export function parseGeocrmCompositeId(modelId: string): { vendor?: string; mode
 /**
  * Whether a catalog row is a GeoCRM vendor with no key in Settings.
  * @param model - picker row (description carries the sentinel).
- * @returns true when the composer should show Not Configured and refuse a pick.
+ * @returns true when menus must omit the row.
  */
 export function isGeocrmNotConfigured(model: { readonly description?: string }): boolean {
   return model.description === GEOCRM_NOT_CONFIGURED
@@ -93,6 +93,8 @@ export function geocrmCombinedLabel(modelId: string, modelName: string, routeId:
 
 /**
  * Split a `geocrm` group into vendor headings; leave every other group intact.
+ * Vendors with no key (`geocrm:not-configured`) are omitted so menus cannot
+ * pick a model GeoCRM would refuse.
  * @param groups - Host catalog groups (`group.id` is the selectable route).
  * @returns visual groups that still select `provider: geocrm` for composites.
  */
@@ -104,6 +106,7 @@ export function presentGeocrmCatalog(groups: readonly ModelProviderGroup[]): Pre
     const byVendor = new Map<string, ModelCatalogModel[]>()
     const leftovers: ModelCatalogModel[] = []
     for (const model of group.models) {
+      if (isGeocrmNotConfigured(model)) continue
       const { vendor } = parseGeocrmCompositeId(model.id)
       if (vendor === undefined) {
         leftovers.push(model)
@@ -145,4 +148,24 @@ export function presentGeocrmCatalog(groups: readonly ModelProviderGroup[]): Pre
     }
     return presented
   })
+}
+
+/**
+ * Find the Host catalog row for the session's current selection.
+ * Looks at raw groups, including rows {@link presentGeocrmCatalog} omits.
+ * @param groups - Host catalog groups.
+ * @param current - stored provider/model pair.
+ * @returns the matching row, or `undefined` when the catalog does not list it.
+ */
+export function lookupCatalogModel(
+  groups: readonly ModelProviderGroup[],
+  current: { readonly provider: string; readonly model: string } | null,
+): { readonly routeId: string; readonly model: ModelCatalogModel } | undefined {
+  if (current === null) return undefined
+  for (const group of groups) {
+    if (group.id !== current.provider) continue
+    const model = group.models.find(row => row.id === current.model)
+    if (model !== undefined) return { routeId: group.id, model }
+  }
+  return undefined
 }
