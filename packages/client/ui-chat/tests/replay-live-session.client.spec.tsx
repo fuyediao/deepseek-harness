@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import type { ReactNode } from 'react'
 import { render } from '@testing-library/react'
 import type {
   ChatConversationViewNode, ChatSnapshot, ChatViewSlotProps,
@@ -115,7 +116,9 @@ describe('replay live GeoCRM session into origin/master Chat', () => {
       || entry.event.type === 'assistant/message'
       || entry.event.type === 'tool/result'
     ))
-    const appendCount = surface.filter(entry => isAppendSurfaceEvent(entry.event)).length
+    const appendCount = surface.filter(entry => (
+      entry.type === 'event' && isAppendSurfaceEvent(entry.event)
+    )).length
     let built: ChatSnapshot
     try {
       built = snapshotOf(assembler(entries))
@@ -175,7 +178,7 @@ describe('replay live GeoCRM session into origin/master Chat', () => {
         if (hook === undefined) {
           hook = bindSnapshotSelector({
             getSnapshot: () => resolve(key).getSnapshot(),
-            subscribe: listener => resolve(key).subscribe(listener),
+            subscribe: (listener: () => void) => resolve(key).subscribe(listener),
           } as never)
           keyed.set(key, hook)
         }
@@ -183,7 +186,7 @@ describe('replay live GeoCRM session into origin/master Chat', () => {
       }) as ChatViewSlotProps['useChatNode']
     )
     const chat = createChatStore().create()
-    const renderSlot: ChatViewSlotProps['renderSlot'] = ((_key, _owner, opts) => (
+    const renderSlot = ((_key: string, _owner: object, opts?: { fallback?: ReactNode }) => (
       opts?.fallback ?? null
     )) as ChatViewSlotProps['renderSlot']
     const props = {

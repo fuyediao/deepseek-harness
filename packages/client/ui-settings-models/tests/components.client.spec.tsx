@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
 import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type {
-  CredentialInfo, RemoteResult, SettingsNamespaceView,
+  CredentialInfo, LlmDiscoveredModel, RemoteResult, SettingsNamespaceView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import {
@@ -182,7 +182,7 @@ function scriptedFace(overrides: {
         { provider: 'broken', displayName: 'broken', settingsNs: 'llm-pi-ai', settingsPath: ['nope', 'x'], active: false },
         { provider: 'plain', displayName: 'plain', settingsNs: 'llm-plain', settingsPath: ['profiles', 'plain'], active: false },
       ].map(({ active: _active, ...entry }) => entry)))),
-      discoverModels: vi.fn(() => Promise.resolve(remoteOk([]))),
+      discoverModels: vi.fn((): Promise<RemoteResult<LlmDiscoveredModel[]>> => Promise.resolve(remoteOk([]))),
     },
     settings: {
       describe: vi.fn(() => Promise.resolve(remoteOk({ writable: true, hasDocument: false, namespaces: wireNamespaces() }))),
@@ -209,7 +209,7 @@ function scriptedFace(overrides: {
 
 function geocrmModelsNamespace(options: {
   userModels?: Array<{ id: string; name?: string }>
-  defaultModels?: Array<{ id: string; name?: string }>
+  defaultModels?: Array<{ id: string; name: string }>
 } = {}): SettingsNamespaceView {
   const GeoCrmConfig = Schema.object({
     apiKeyEnv: Schema.string().role('credential-ref'),
@@ -1280,8 +1280,8 @@ describe('ModelsSection', () => {
 
   it('drops an in-flight GeoCRM catalog load when the card unmounts', async () => {
     const { face } = scriptedFace()
-    let finish!: (value: ReturnType<typeof remoteOk>) => void
-    face.llm.discoverModels = vi.fn(() => new Promise((resolve) => {
+    let finish!: (value: RemoteResult<LlmDiscoveredModel[]>) => void
+    face.llm.discoverModels = vi.fn(() => new Promise<RemoteResult<LlmDiscoveredModel[]>>((resolve) => {
       finish = resolve
     }))
     const GeoCrmConfig = Schema.object({
@@ -1536,8 +1536,8 @@ describe('ModelsSection', () => {
 
   it('drops a refused GeoCRM catalog load when the card unmounts', async () => {
     const { face } = scriptedFace()
-    let finish!: (value: ReturnType<typeof remoteFail>) => void
-    face.llm.discoverModels = vi.fn(() => new Promise((resolve) => {
+    let finish!: (value: RemoteResult<LlmDiscoveredModel[]>) => void
+    face.llm.discoverModels = vi.fn(() => new Promise<RemoteResult<LlmDiscoveredModel[]>>((resolve) => {
       finish = resolve
     }))
     const { ProviderEditor } = await import('../src/client/ProviderEditor.tsx')

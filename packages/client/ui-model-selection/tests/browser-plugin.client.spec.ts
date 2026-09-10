@@ -15,7 +15,9 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
-import type { ModelSelection, ModelSelectionProjection } from '@deepseek-ai/dsh-api-session-controller/types'
+import type {
+  ModelProviderGroup, ModelSelection, ModelSelectionProjection,
+} from '@deepseek-ai/dsh-api-session-controller/types'
 import type { CommandContribution, PopupSelectSpec, SelectOption } from '@deepseek-ai/dsh-client-ui-commands/client'
 import type { ModelSelectInjected } from '../src/client/slots.ts'
 import { apply, inject } from '../src/client/index.ts'
@@ -66,7 +68,7 @@ const GROUPS = [{
 
 /** Boot the plugin over fake faces + a stateful fake host (current moves on selectModel). */
 async function bench(overrides: {
-  groups?: typeof GROUPS
+  groups?: readonly ModelProviderGroup[]
   defaultSelection?: ModelSelection
   locale?: 'zh' | 'en'
 } = {}) {

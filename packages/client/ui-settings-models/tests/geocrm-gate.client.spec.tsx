@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
@@ -20,6 +21,10 @@ afterEach(() => {
 })
 
 const t = (key: keyof typeof en): string => en[key]
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
+const useResource = (() => ({
+  status: 'none' as const, value: undefined, failure: undefined, reload: () => {},
+})) as GlobalStandardProps['useResource']
 
 function operations(overrides: Partial<ModelsOperations> = {}): ModelsOperations {
   return {
@@ -42,6 +47,8 @@ function mount(state: SignInGateState, overrides: Partial<GeoCrmGateProps> = {})
     useSessions: unusedHook,
     useSessionPendingInteraction: selector => selector(new Map()),
     useWorkspaces: unusedHook,
+    usePanelInfo,
+    useResource,
     operations: operations(),
     unlock: () => {},
     t,
