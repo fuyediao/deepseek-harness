@@ -221,12 +221,12 @@ export function apply(ctx: Context, config: Config): void {
   }
   options()
   const entry: Config = {
-    apiKeyEnv: config.apiKeyEnv,
     baseURL: resolveGeoCrmOrigin(config, environment),
-    models: config.models,
-    defaultContextWindow: config.defaultContextWindow,
-    streamIdleTimeoutMs: config.streamIdleTimeoutMs,
-    retryPolicy: config.retryPolicy,
+    ...config.apiKeyEnv !== undefined ? { apiKeyEnv: config.apiKeyEnv } : {},
+    ...config.models !== undefined ? { models: config.models } : {},
+    ...config.defaultContextWindow !== undefined ? { defaultContextWindow: config.defaultContextWindow } : {},
+    ...config.streamIdleTimeoutMs !== undefined ? { streamIdleTimeoutMs: config.streamIdleTimeoutMs } : {},
+    ...config.retryPolicy !== undefined ? { retryPolicy: config.retryPolicy } : {},
   }
   current = () => entry
 

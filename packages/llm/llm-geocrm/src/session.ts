@@ -227,12 +227,13 @@ function usableAccessToken(
  */
 function decodeJwtPayload(token: string): Record<string, unknown> | undefined {
   const parts = token.split('.')
-  if (parts.length < 2) return undefined
+  const payload = parts[1]
+  if (payload === undefined) return undefined
   try {
-    const json = Buffer.from(parts[1], 'base64url').toString('utf8')
+    const json = Buffer.from(payload, 'base64url').toString('utf8')
     const parsed = JSON.parse(json) as unknown
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return undefined
-    return parsed
+    return parsed as Record<string, unknown>
   } catch {
     // Paste tokens and truncated JWTs stay opaque; callers skip refresh.
     return undefined

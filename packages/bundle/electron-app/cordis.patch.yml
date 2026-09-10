@@ -46,7 +46,7 @@
 
 - id: system-prompt
   config:
-    persona: >-
+    personaPrefix: >-
       You are the GeoCRM Harness work agent powered by the {{model}} model. Your working directory is {{cwd}}. You still write and edit software when that is the job.
 
 # Full-text session search is opt-in (the base row's `openAt: never`). This

@@ -59,7 +59,7 @@ describe('electron-app runtime glue', () => {
     provideConnection(ctx)
     provideClientModules(ctx)
     apply(ctx, new Config({ openWindow: false }))
-    await ctx.plugin(SystemPrompt, { persona: '' })
+    await ctx.plugin(SystemPrompt, { personaPrefix: '' })
     await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(ctx.get('webServer')).toBeUndefined()

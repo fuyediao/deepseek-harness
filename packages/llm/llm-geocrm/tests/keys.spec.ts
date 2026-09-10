@@ -69,6 +69,16 @@ describe('parseConfiguredProviders', () => {
   })
 })
 
+describe('parseKeyPresence', () => {
+  it('accepts either live payload and rejects other JSON', () => {
+    expect(parseKeyPresence({ configured: ['OpenAI'] })).toEqual(new Set(['openai']))
+    expect(parseKeyPresence({
+      models: [{ model: 'gemini', ok: true }],
+    })).toEqual(new Set(['gemini']))
+    expect(parseKeyPresence({})).toBeNull()
+  })
+})
+
 describe('configuredIdsFromEntries', () => {
   it('requires every row to carry a boolean', () => {
     expect(configuredIdsFromEntries([])).toBeNull()
