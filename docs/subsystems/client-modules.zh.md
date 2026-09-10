@@ -131,25 +131,13 @@ graph(): WebBootGraph
 clientPath(id: string): string | undefined
 
 /**
- * The boot protocol rows this registry contributes to an index document,
- * with no `webServer`/`webserver/index-inject` round trip. A webServer-less
- * Host (the Electron IPC shell) calls this directly when composing its own
- * index document, alongside any other renderer's `webserver/index-inject`
- * contribution (gathered by emitting that event itself).
- * @returns the same rows {@link bootInjections} derives from the current graph.
+ * Serve an advertised revisioned bundle or source map without a Web server.
+ * Unknown URLs return 404, unsupported methods return 405, and `HEAD`
+ * returns the same immutable headers without a body.
+ * @param request - shell-carrier request for a `/plugins` resource.
+ * @returns the exact response also exposed by the optional Web route.
  */
-indexInjections(): IndexInjection[]
-
-/**
- * Resolve one `/plugins`-relative resource by its exact combo or map URL,
- * with no `webServer`/HTTP round trip. A webServer-less Host (the Electron
- * IPC shell) calls this directly to answer a `/plugins/...` fetch carried
- * over its own transport; {@link serveBundle} is the HTTP-route form of the
- * same lookup.
- * @param resourceUrl - exact combo or source-map URL, including its query string.
- * @returns the immutable bytes and content type, or undefined when unknown.
- */
-resolveResource(resourceUrl: string): { body: Buffer; contentType: string } | undefined
+fetchBundle(request: Request): Response
 
 /**
  * Filesystem baseline captured before an entry's current bytes were read.
@@ -184,8 +172,6 @@ onRebuilt(listener: (id: string, rev: string) => void): () => void
  */
 onGraphChanged(listener: () => void): () => void
 ```
-
-Types: [IndexInjection](web-server.zh.md)
 
 Source: [`packages/client/modules/src/index.ts`](../../packages/client/modules/src/index.ts)
 <!-- END GENERATED cordis-surface -->

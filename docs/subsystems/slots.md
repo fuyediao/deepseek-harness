@@ -82,6 +82,7 @@ The shipped adapters add these standard props. They are available according to t
 |---|---|---|
 | every scope | `useSessions`, `useSessionPendingInteraction` | `ui-session` |
 | every scope | `useWorkspaces` | `ui-workspace` |
+| every scope | `usePanelInfo` | `ui-layout` |
 | `session` | `sessionId`, `useSession`, `useProjection` | `ui-session` |
 | `session-maybe` | optional `sessionId`, `useSession`, `useProjection` results | `ui-session` |
 | `session` | `useConversation`, `useInput`, `inputActions` | `ui-conversation` |
@@ -112,6 +113,7 @@ root
 ├─ sidebar
 │  ├─ sidebar.brand.mark
 │  ├─ sidebar.brand.name
+│  ├─ sidebar.panellist
 │  ├─ sidebar.footer.action
 │  ├─ sidebar.workspaces
 │  │  └─ sidebar.workspaces.directoryFlow
@@ -127,42 +129,46 @@ root
 │        ├─ settings.models.footer
 │        └─ settings.plugins.tab
 │           └─ settings.plugin.item
-├─ conversation
-│  ├─ conversation.session
-│  │  └─ conversation.view
-│  │     ├─ conversation.chat.node
-│  │     │  ├─ conversation.chat.assistant-actions
-│  │     │  ├─ conversation.chat.commandview
-│  │     │  ├─ conversation.chat.turnTail
-│  │     │  └─ tool.call.toolview
-│  │     │     ├─ tool.call.images
-│  │     │     └─ tool.view.cordis
-│  │     ├─ conversation.message.images
-│  │     └─ conversation.trajectory.images
-│  ├─ conversation.session.header
-│  │  ├─ conversation.session.header.lineage
-│  │  ├─ conversation.session.header.actions
-│  │  └─ conversation.session.header.utilities
-│  ├─ conversation.composer
-│  │  └─ conversation.approval.detail
-│  ├─ conversation.composer.bar
-│  │  ├─ conversation.input.attachments
-│  │  ├─ conversation.input.plan
-│  │  └─ conversation.input.model
-│  ├─ conversation.input.overlay
-│  ├─ conversation.input.dock
-│  ├─ conversation.composer.dock
-│  ├─ conversation.input.left
-│  ├─ conversation.input.right
-│  ├─ conversation.hero.brand.mark
-│  ├─ conversation.hero.wordmark
-│  ├─ conversation.hero.workspace
-│  │  └─ conversation.hero.workspace.directoryFlow
-│  └─ conversation.hero.agentPreset
-├─ details
-│  └─ conversation.details.tool
-├─ shell.overlay
-└─ shell.gate
+├─ main
+│  └─ main.conversation
+│     ├─ conversation.session
+│     │  └─ conversation.view
+│     │     ├─ conversation.chat.node
+│     │     │  ├─ conversation.chat.assistant-actions
+│     │     │  ├─ conversation.chat.commandview
+│     │     │  ├─ conversation.chat.turnTail
+│     │     │  └─ tool.call.toolview
+│     │     │     ├─ tool.call.images
+│     │     │     └─ tool.view.cordis
+│     │     ├─ conversation.message.images
+│     │     └─ conversation.trajectory.images
+│     ├─ conversation.session.header
+│     │  ├─ conversation.session.header.lineage
+│     │  ├─ conversation.session.header.actions
+│     │  ├─ conversation.session.header.utilities
+│     │  └─ conversation.session.header.corner
+│     ├─ conversation.composer
+│     │  └─ conversation.approval.detail
+│     ├─ conversation.composer.bar
+│     │  ├─ conversation.input.attachments
+│     │  ├─ conversation.input.plan
+│     │  └─ conversation.input.model
+│     ├─ conversation.input.overlay
+│     ├─ conversation.input.dock
+│     ├─ conversation.composer.dock
+│     ├─ conversation.input.left
+│     ├─ conversation.input.right
+│     ├─ conversation.hero.brand.mark
+│     ├─ conversation.hero.workspace
+│     │  └─ conversation.hero.workspace.directoryFlow
+│     └─ conversation.hero.agentPreset
+├─ rightbar
+│  └─ rightbar.session
+│     ├─ sidebar.right.pane.tab
+│     │  └─ sidebar.right.tab.guide
+│     ├─ sidebar.right.pane.tab.title
+│     └─ sidebar.right.tab.menu.item
+└─ shell.overlay
 ```
 
 The generated Client inspect catalog is the exhaustive contract for each key: cardinality, scope, owner props, standard props, current occupants, declaration owner, and replacement risk. A running dynamic package can query the live tree and an exact key with `cordis_inspect what:"client"`; the source catalog is generated from `SlotMap` declarations and `slots.register()` call sites by `pnpm run gen-client-catalog`.
