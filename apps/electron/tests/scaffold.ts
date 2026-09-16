@@ -16,7 +16,7 @@ import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-workspace'
 import type {} from '@deepseek-ai/dsh-session-persistence'
-import { SessionId, SESSION_FORMAT_VERSION, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session'
+import { SessionId, SESSION_FORMAT_VERSION, type SessionHeader } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { bootProductionProfile } from '../../../packages/test-support/loader-smoke/tests/fixtures/production-profile.ts'
 import {
@@ -119,7 +119,7 @@ export async function seedElectronSession(
   try {
     await seeder.plugin(JsonlSessionPersistence, { root: scaffold.persistenceRoot })
     const handle = await seeder.sessionPersistence.create(meta)
-    await handle.append(materializedEvents as SessionEvent[])
+    await handle.append(materializedEvents)
     await handle.close()
   } finally {
     await seeder.fiber.dispose()
@@ -187,7 +187,7 @@ export async function launchElectronScaffold(
   process.stdout.write = ((chunk: unknown, ...rest: unknown[]) => {
     capture(String(chunk))
     return (originalWrite as (...args: unknown[]) => boolean)(chunk, ...rest)
-  }) as typeof process.stdout.write
+  })
   const findReadyLine = (): string | undefined => {
     for (const line of ipcLogs) {
       const match = line.split(/\r?\n/).find(part => part.startsWith(readyPrefix))

@@ -233,8 +233,8 @@ describe('runGoogleSignIn', () => {
     const landing = new URL(new URL(authorize).searchParams.get('next') as string)
     const html = await (await fetch(landing)).text()
     expect(html).toContain('Returning to GeoCRM Harness')
-    expect(await (await fetch(new URL('/favicon.ico', landing))).status).toBe(204)
-    expect(await (await fetch(new URL('/missing', landing))).status).toBe(404)
+    expect((await fetch(new URL('/favicon.ico', landing))).status).toBe(204)
+    expect((await fetch(new URL('/missing', landing))).status).toBe(404)
     expect(await getWithHost(landing, 'evil.example:1')).toBe(403)
     await fetch(new URL('/complete', landing), {
       method: 'POST',

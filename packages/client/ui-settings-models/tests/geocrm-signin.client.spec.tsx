@@ -73,7 +73,7 @@ describe('GeoCrmSignIn', () => {
     const onCredentialChange = vi.fn()
     const onAccess = vi.fn()
     vi.stubGlobal('fetch', vi.fn((input: string) => {
-      if (String(input).includes('/auth/password')) {
+      if (input.includes('/auth/password')) {
         return jsonResponse({
           access_token: 'jwt',
           refresh_token: 'refresh',
@@ -93,7 +93,7 @@ describe('GeoCrmSignIn', () => {
     expect(storeCredential).toHaveBeenCalledWith('GEOCRM_HARNESS_REFRESH', 'refresh')
     expect(onCredentialChange).toHaveBeenCalled()
     await screen.findByText(`${en.accountSignedIn} ada@example.com`)
-    expect(screen.getByText((content) => content.includes(en.accountNoDesktopAgent))).toBeTruthy()
+    expect(screen.getByText(content => content.includes(en.accountNoDesktopAgent))).toBeTruthy()
     expect(onAccess).toHaveBeenCalledWith(expect.objectContaining({ desktopAgent: false }))
     fireEvent.click(screen.getByText(en.loginModeEmployeeId))
     expect(screen.getByLabelText(en.employeeId)).toBeTruthy()
@@ -101,10 +101,10 @@ describe('GeoCrmSignIn', () => {
 
   it('reports a refused credential write and a later access-check failure', async () => {
     vi.stubGlobal('fetch', vi.fn((input: string) => {
-      if (String(input).includes('resolve-employee-id')) {
+      if (input.includes('resolve-employee-id')) {
         return jsonResponse({ email: 'ada@example.com' })
       }
-      if (String(input).includes('/auth/password')) {
+      if (input.includes('/auth/password')) {
         return jsonResponse({ access_token: 'jwt', refresh_token: 'refresh' })
       }
       return Promise.reject(new Error('probe-down'))
@@ -121,12 +121,13 @@ describe('GeoCrmSignIn', () => {
     fireEvent.click(screen.getByText(en.signIn))
     await screen.findByText('probe-down')
     vi.stubGlobal('fetch', vi.fn((input: string) => {
-      if (String(input).includes('resolve-employee-id')) {
+      if (input.includes('resolve-employee-id')) {
         return jsonResponse({ email: 'ada@example.com' })
       }
-      if (String(input).includes('/auth/password')) {
+      if (input.includes('/auth/password')) {
         return jsonResponse({ access_token: 'jwt', refresh_token: 'refresh' })
       }
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- this case covers a non-Error rejection.
       return Promise.reject('probe-down')
     }))
     fireEvent.change(screen.getByLabelText(en.loginPassword), { target: { value: 'secret' } })
@@ -171,7 +172,7 @@ describe('GeoCrmSignIn', () => {
 
   it('unsets the access token when the refresh token cannot be stored', async () => {
     vi.stubGlobal('fetch', vi.fn((input: string) => {
-      if (String(input).includes('/auth/password')) {
+      if (input.includes('/auth/password')) {
         return jsonResponse({ access_token: 'jwt', refresh_token: 'refresh' })
       }
       return jsonResponse({
@@ -240,7 +241,7 @@ describe('GeoCrmSignIn', () => {
       .mockRejectedValueOnce(new Error('cancelled'))
     vi.stubGlobal('__dshElectronBridge__', { signInWithGoogle })
     vi.stubGlobal('fetch', vi.fn((input: string) => {
-      if (String(input).includes('/auth/me')) {
+      if (input.includes('/auth/me')) {
         return jsonResponse({ user: { email: 'ada@example.com' } })
       }
       return jsonResponse({
@@ -306,7 +307,7 @@ describe('GeoCrmSignIn', () => {
     })
     const storeCredential = vi.fn(() => Promise.resolve(undefined))
     vi.stubGlobal('fetch', vi.fn((input: string) => {
-      if (String(input).includes('/auth/me')) {
+      if (input.includes('/auth/me')) {
         return jsonResponse({})
       }
       return jsonResponse({
@@ -321,6 +322,7 @@ describe('GeoCrmSignIn', () => {
 
   it('reports a non-Error Google rejection as a generic failure', async () => {
     vi.stubGlobal('__dshElectronBridge__', {
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- this case covers a non-Error rejection.
       signInWithGoogle: () => Promise.reject('down'),
     })
     mount()

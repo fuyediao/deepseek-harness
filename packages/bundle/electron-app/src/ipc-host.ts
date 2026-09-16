@@ -30,7 +30,7 @@ export interface ElectronFetchHandler {
 
 /** The `/plugins`-relative bundle-resource lookup this Host relays over the socket. */
 export interface ElectronBundleResources {
-  resolveResource(resourceUrl: string): { body: Buffer; contentType: string } | undefined
+  resolveResource(resourceUrl: string): { body: () => Promise<Buffer>; contentType: string } | undefined
 }
 
 /** The Typert Gateway's carrier-independent logical-stream driver. */
@@ -78,7 +78,7 @@ async function dispatchFetch(
       id: frame.id,
       status: 200,
       headers: { 'content-type': resource.contentType },
-      body: resource.body.toString('base64'),
+      body: (await resource.body()).toString('base64'),
     }
   }
   const request = new Request(url, {
@@ -209,7 +209,7 @@ export class ElectronIpcHost {
         return
       case 'fetch':
         void dispatchFetch(this.deps, frame)
-          .then(response => { this.send(response) })
+          .then((response) => { this.send(response) })
           .catch((error: unknown) => {
             this.send({
               t: 'fetch-res',
@@ -232,7 +232,7 @@ export class ElectronIpcHost {
         }
         const controller = new AbortController()
         this.aborters.set(frame.id, controller)
-        void driveStream(gateway, sent => { this.send(sent) }, frame.id, frame.endpoint, frame.payload, controller.signal)
+        void driveStream(gateway, (sent) => { this.send(sent) }, frame.id, frame.endpoint, frame.payload, controller.signal)
           .finally(() => { this.aborters.delete(frame.id) })
       }
     }

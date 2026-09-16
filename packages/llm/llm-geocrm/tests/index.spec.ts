@@ -42,7 +42,7 @@ describe('resolveAdapterOptions', () => {
       .toThrow(/baseURL/)
     expect(LlmGeocrm.resolveAdapterOptions(
       { baseURL: 'http://ignored' },
-      { get: (name) => name === 'GEOCRM_BASE_URL'
+      { get: name => name === 'GEOCRM_BASE_URL'
         ? { value: 'https://api.vps.example/', source: 'project-env' as const }
         : undefined },
     ).baseURL).toBe('https://api.vps.example')
@@ -180,7 +180,7 @@ describe('apply', () => {
     const ctx = new Context()
     ctx.provide('credentials', {
       resolve: (ref: string) => Promise.resolve({
-        value: String(ref).endsWith('_REFRESH') ? 'old-refresh' : expired,
+        value: ref.endsWith('_REFRESH') ? 'old-refresh' : expired,
       }),
     } as never)
     await ctx.plugin(LlmRuntime)

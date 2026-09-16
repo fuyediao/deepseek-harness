@@ -38,7 +38,7 @@ describe('packaged Electron IPC ready line', () => {
     const stdout = new PassThrough()
     const pending = waitForIpcReady(stdout, 1_000)
     stdout.write('boot noise\n')
-    stdout.write(`${IPC_READY_PREFIX}`)
+    stdout.write(IPC_READY_PREFIX)
     stdout.write('\\\\.\\pipe\\ready\n')
     await expect(pending).resolves.toBe('\\\\.\\pipe\\ready')
   })

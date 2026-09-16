@@ -12,7 +12,7 @@ Status: implemented
 
 ### Connection 与 client-modules 不再要求 webServer
 
-`packages/client/connection` 与 `packages/client/modules` 把 `webServer` 从各自的激活 `inject` 中移除。`HostConnectionService` 与 `ClientModuleRegistry` 无条件构造并回答 `createSharedFetchHandler`／`resolveResource`／`indexInjections`；两个包各自只在 `ctx.get('webServer')` 有定义时才注册自己的 HTTP route（`/api`、`/plugins`），该判断在 apply 时同步完成——两者都存在时，Loader 总会先激活 `webServer` 再激活这两个包，因此这与把激活门槛设在它之上等价，却省去了额外 fiber。`ClientModuleRegistry.resolveResource(resourceUrl)` 就是 `serveBundle` 早已具备的同一套 combo/map 查找；现在它同时也是一个直接的、非 HTTP 的入口。`indexInjections()` 直接返回 `bootInjections(this.composed)`。`webserver/index-inject` 监听器保持无条件注册：它是一个普通 Context 事件，不是 `webServer` 能力，非 HTTP 渲染方（Electron）通过自行触发该事件即可拿到同一张表。
+`packages/client/connection` 与 `packages/client/modules` 把 `webServer` 从各自的激活 `inject` 中移除。`HostConnectionService` 与 `ClientModuleRegistry` 无条件构造并回答 `createSharedFetchHandler`／`resolveResource`／`indexInjections`；两个包各自从 `ctx.inject(['webServer'], …)` 注册自己的 HTTP route（`/api`、`/plugins`），因此该 route 跟随该服务的生命周期，在没有 `webServer` 的宿主上则永不注册。`ClientModuleRegistry.resolveResource(resourceUrl)` 就是 `serveBundle` 早已具备的同一套 combo/map 查找；现在它同时也是一个直接的、非 HTTP 的入口。`indexInjections()` 直接返回 `bootInjections(this.composed)`。`webserver/index-inject` 监听器保持无条件注册：它是一个普通 Context 事件，不是 `webServer` 能力，非 HTTP 渲染方（Electron）通过自行触发该事件即可拿到同一张表。
 
 ### `@deepseek-ai/dsh-electron-app`：桌面 bundle，不监听端口
 

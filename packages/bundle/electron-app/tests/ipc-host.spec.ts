@@ -65,7 +65,7 @@ function fakeFetchHandler(handle: (request: Request) => Promise<Response>): Elec
 }
 
 function fakeClientModules(
-  resources: Record<string, { body: Buffer; contentType: string }>,
+  resources: Record<string, { body: () => Promise<Buffer>; contentType: string }>,
 ): ElectronIpcHostDeps['clientModules'] {
   return { resolveResource: url => resources[url] }
 }
@@ -128,7 +128,7 @@ describe('ElectronIpcHost', () => {
     const { client } = await mount({
       fetchHandler: fakeFetchHandler(async () => { called.push('fetch'); return new Response(null, { status: 404 }) }),
       clientModules: fakeClientModules({
-        '/plugins/??a/client.js&rev=1': { body: Buffer.from('module.exports={}'), contentType: 'text/javascript; charset=utf-8' },
+        '/plugins/??a/client.js&rev=1': { body: () => Promise.resolve(Buffer.from('module.exports={}')), contentType: 'text/javascript; charset=utf-8' },
       }),
     })
     client.send({ t: 'fetch', id: 'p1', method: 'GET', url: '/plugins/??a/client.js&rev=1', headers: {} })
@@ -174,7 +174,6 @@ describe('ElectronIpcHost', () => {
   it('converts a thrown stream failure into a stream-error frame', async () => {
     const gateway: ElectronStreamGateway = {
       wireStream: {
-        // eslint-disable-next-line @typescript-eslint/require-await -- matches the real async generator open() contract.
         open: async function *() {
           throw new Error('should not run')
         } as unknown as ElectronStreamGateway['wireStream']['open'],
@@ -183,18 +182,20 @@ describe('ElectronIpcHost', () => {
     }
     const { client } = await mount({ streamGateway: gateway })
     client.send({ t: 'stream-open', id: 's2', endpoint: 'goals/watch', payload: {} })
-    await expect(client.receive()).resolves.toEqual({
-      t: 'stream-error', id: 's2',
-      failure: { kind: 'remote', code: 'gateway/bad-request', message: expect.any(String), details: { issues: [] } },
-    })
+    const failed = await client.receive()
+    if (failed.t !== 'stream-error' || failed.failure.kind !== 'remote') throw new Error('expected a remote stream-error frame')
+    expect(failed.id).toBe('s2')
+    expect(failed.failure.code).toBe('gateway/bad-request')
+    expect(failed.failure.details).toEqual({ issues: [] })
   })
 
   it('answers stream-open with a carrier stream-error when no Gateway is mounted', async () => {
     const { client } = await mount({ streamGateway: undefined })
     client.send({ t: 'stream-open', id: 's3', endpoint: 'events.mux', payload: {} })
-    await expect(client.receive()).resolves.toEqual({
-      t: 'stream-error', id: 's3', failure: { kind: 'carrier', message: expect.stringContaining('no Typert Gateway') },
-    })
+    const unmounted = await client.receive()
+    if (unmounted.t !== 'stream-error' || unmounted.failure.kind !== 'carrier') throw new Error('expected a carrier stream-error frame')
+    expect(unmounted.id).toBe('s3')
+    expect(unmounted.failure.message).toContain('no Typert Gateway')
   })
 
   it('stops sending items after an abort frame', async () => {

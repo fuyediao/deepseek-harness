@@ -120,7 +120,7 @@ describe('resolveLiveSessionToken', () => {
       origin: 'http://127.0.0.1:3001',
       apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
       store: empty,
-      ambient: (ref) => ref === 'GEOCRM_HARNESS_TOKEN' ? 'env-jwt' : undefined,
+      ambient: ref => ref === 'GEOCRM_HARNESS_TOKEN' ? 'env-jwt' : undefined,
     })).resolves.toBe('env-jwt')
 
     await expect(resolveLiveSessionToken({
@@ -182,7 +182,7 @@ describe('resolveLiveSessionToken', () => {
       apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
       now,
       store: {
-        resolve: (ref) => Promise.resolve({ value: values.get(ref)! }),
+        resolve: ref => Promise.resolve({ value: values.get(ref)! }),
         set: (ref, value) => {
           values.set(ref, value)
           return Promise.resolve()
@@ -204,7 +204,7 @@ describe('resolveLiveSessionToken', () => {
       apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
       now,
       store: {
-        resolve: (ref) => Promise.resolve({
+        resolve: ref => Promise.resolve({
           value: ref === 'GEOCRM_HARNESS_TOKEN' ? near : 'old-refresh',
         }),
         set: () => Promise.reject(new Error('env-locked')),
@@ -216,7 +216,7 @@ describe('resolveLiveSessionToken', () => {
       apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
       now,
       store: {
-        resolve: (ref) => Promise.resolve({
+        resolve: ref => Promise.resolve({
           value: ref === 'GEOCRM_HARNESS_TOKEN' ? near : 'old-refresh',
         }),
       },
@@ -225,13 +225,14 @@ describe('resolveLiveSessionToken', () => {
 
   it('returns the current access token when refresh fails before expiry', async () => {
     const near = jwtWith({ exp: (now + 30_000) / 1000 })
+    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- this case covers a non-Error rejection.
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject('down')))
     await expect(resolveLiveSessionToken({
       origin: 'http://127.0.0.1:3001',
       apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
       now,
       store: {
-        resolve: (ref) => Promise.resolve({
+        resolve: ref => Promise.resolve({
           value: ref === 'GEOCRM_HARNESS_TOKEN' ? near : 'old-refresh',
         }),
       },
@@ -245,7 +246,7 @@ describe('resolveLiveSessionToken', () => {
       apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
       now,
       store: {
-        resolve: (ref) => Promise.resolve(
+        resolve: ref => Promise.resolve(
           ref === 'GEOCRM_HARNESS_TOKEN' ? { value: expired } : undefined,
         ),
       },
@@ -264,18 +265,19 @@ describe('resolveLiveSessionToken', () => {
       apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
       now,
       store: {
-        resolve: (ref) => Promise.resolve({
+        resolve: ref => Promise.resolve({
           value: ref === 'GEOCRM_HARNESS_TOKEN' ? expired : 'old-refresh',
         }),
       },
     })).rejects.toBeInstanceOf(GeoCrmSessionError)
+    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- this case covers a non-Error rejection.
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject('down')))
     await expect(resolveLiveSessionToken({
       origin: 'http://127.0.0.1:3001',
       apiKeyEnv: 'GEOCRM_HARNESS_TOKEN',
       now,
       store: {
-        resolve: (ref) => Promise.resolve({
+        resolve: ref => Promise.resolve({
           value: ref === 'GEOCRM_HARNESS_TOKEN' ? expired : 'old-refresh',
         }),
       },

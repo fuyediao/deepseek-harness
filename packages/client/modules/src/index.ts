@@ -609,8 +609,7 @@ export class ClientModuleRegistry extends Service {
         'client-modules: bundle route',
       )
     }
-    if (ctx.get('webServer') === undefined) ctx.inject(['webServer'], registerWebCarrier)
-    else registerWebCarrier(ctx)
+    ctx.inject(['webServer'], registerWebCarrier)
     // The listener itself stays unconditional: `webserver/index-inject` is an
     // ordinary Context event, not a webServer capability. A webServer-less
     // Host still needs these rows when it renders its own index document (the
@@ -658,9 +657,9 @@ export class ClientModuleRegistry extends Service {
    * over its own transport; {@link serveBundle} is the HTTP-route form of the
    * same lookup.
    * @param resourceUrl - exact combo or source-map URL, including its query string.
-   * @returns the immutable bytes and content type, or undefined when unknown.
+   * @returns the content type and the body materializer, or undefined when unknown.
    */
-  resolveResource(resourceUrl: string): { body: Buffer; contentType: string } | undefined {
+  resolveResource(resourceUrl: string): { body: () => Promise<Buffer>; contentType: string } | undefined {
     return this.responses.get(resourceUrl) ?? this.previousBatchResponses.get(resourceUrl)
   }
 

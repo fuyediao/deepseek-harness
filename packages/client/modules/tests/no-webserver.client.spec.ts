@@ -86,7 +86,7 @@ describe('client-modules without a listening webServer', () => {
     expect(service.graph().entries[0]?.rev).toBe(rev)
   })
 
-  it('resolves plugin resources and index injections directly, with no webServer/HTTP round trip', () => {
+  it('resolves plugin resources and index injections directly, with no webServer/HTTP round trip', async () => {
     writeBuiltPackage(MODULES_ID)
     const { service } = constructWithoutWebServer([MODULES_ID])
     const graph = service.graph()
@@ -95,7 +95,7 @@ describe('client-modules without a listening webServer', () => {
 
     const resource = service.resolveResource(entryUrl)
     expect(resource?.contentType).toBe('text/javascript; charset=utf-8')
-    expect(resource?.body.toString('utf8')).toContain('module.exports = {}')
+    expect((await resource?.body())?.toString('utf8')).toContain('module.exports = {}')
     expect(service.resolveResource('/plugins/unknown')).toBeUndefined()
 
     const injections = service.indexInjections()

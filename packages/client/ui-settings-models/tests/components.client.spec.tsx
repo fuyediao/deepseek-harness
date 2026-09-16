@@ -1364,16 +1364,17 @@ describe('ModelsSection', () => {
   })
 
   it('toggles a live GeoCRM catalog row into the drafted allowlist', async () => {
-    const { face, mutate } = scriptedFace()
-    mutate.mockImplementation(() => Promise.resolve(remoteOk({
-      ns: 'llm-geocrm',
-      schema: {},
-      value: {},
-      user: {},
-      applies: 'live',
-      secrets: [],
-      revision: 1,
-    })))
+    const { face, mutate } = scriptedFace({
+      mutate: vi.fn(() => Promise.resolve(remoteOk({
+        ns: 'llm-geocrm',
+        schema: {},
+        value: {},
+        user: {},
+        applies: 'live',
+        secrets: [],
+        revision: 1,
+      }))),
+    })
     face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
       { id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' },
       { id: 'gemini:gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
@@ -1495,16 +1496,17 @@ describe('ModelsSection', () => {
   })
 
   it('turns a live GeoCRM catalog row off and restores inherited defaults', async () => {
-    const { face, mutate } = scriptedFace()
-    mutate.mockImplementation(() => Promise.resolve(remoteOk({
-      ns: 'llm-geocrm',
-      schema: {},
-      value: {},
-      user: {},
-      applies: 'live',
-      secrets: [],
-      revision: 1,
-    })))
+    const { face, mutate } = scriptedFace({
+      mutate: vi.fn(() => Promise.resolve(remoteOk({
+        ns: 'llm-geocrm',
+        schema: {},
+        value: {},
+        user: {},
+        applies: 'live',
+        secrets: [],
+        revision: 1,
+      }))),
+    })
     face.llm.discoverModels = vi.fn(() => Promise.resolve(remoteOk([
       { id: 'chatgpt:gpt-6-astra', name: 'GPT-6 Astra' },
       { id: 'gemini:gemini-3.8-flash', name: 'Gemini 3.8 Flash' },

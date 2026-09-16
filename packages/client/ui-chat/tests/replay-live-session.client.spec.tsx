@@ -4,9 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { ReactNode } from 'react'
 import { render } from '@testing-library/react'
-import type {
-  ChatConversationViewNode, ChatSnapshot, ChatViewSlotProps,
-} from '@deepseek-ai/dsh-client-ui-chat/client'
+import type { ChatSnapshot, ChatViewSlotProps } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { SessionEventLikeEntry } from '@deepseek-ai/dsh-api-session-controller/client'
 import {
   ConversationNodeAssembler,
@@ -129,11 +127,11 @@ describe('replay live GeoCRM session into origin/master Chat', () => {
       )
     }
     const kinds = built.order.map((key) => {
-      const node = built.nodes.get(key) as ChatConversationViewNode | undefined
+      const node = built.nodes.get(key)
       return node?.kind ?? `missing:${key}`
     })
     const process = built.order.map((key) => {
-      const node = built.nodes.get(key) as ChatConversationViewNode | undefined
+      const node = built.nodes.get(key)
       return {
         kind: node?.kind,
         process: built.nodes.processSource(key).getSnapshot() === undefined ? 'missing' : 'ok',
@@ -179,7 +177,7 @@ describe('replay live GeoCRM session into origin/master Chat', () => {
           hook = bindSnapshotSelector({
             getSnapshot: () => resolve(key).getSnapshot(),
             subscribe: (listener: () => void) => resolve(key).subscribe(listener),
-          } as never)
+          })
           keyed.set(key, hook)
         }
         return hook(selector ?? (value => value))
