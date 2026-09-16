@@ -210,6 +210,7 @@ async function mountSection(options: Parameters<typeof scriptedFace>[0] = {}) {
     schema: settingsSchema,
     t,
     renderSlot: () => null,
+    close: () => {},
   }
   render(<ModelsSection {...injected} />)
   return { ...scripted, controller }
@@ -751,6 +752,7 @@ describe('provider rows', () => {
       schema={settingsSchema}
       t={t}
       renderSlot={() => null}
+      close={() => {}}
     />)
 
     // Absent is "unknown", never "shipped": an adapter that answers nothing

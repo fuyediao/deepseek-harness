@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Button, IconPlusOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls this package's SlotMap merge (the two Models child slots).
 import type {} from './slot-contract.ts'
 import { CustomProviderCard } from './CustomProviderCard.tsx'
@@ -61,7 +62,10 @@ type ModelsRenderSlot = PropsRenderSlots<ModelsChildSlots>['renderSlot']
  * call itself — unlike the inject face it is never absent at runtime — and a
  * direct render that forgets it fails to compile instead of mounting nothing.
  */
-export type ModelsSectionProps = Partial<InjectFace<ModelsSectionInjected>> & PropsRenderSlots<ModelsChildSlots>
+export type ModelsSectionProps =
+  Partial<InjectFace<ModelsSectionInjected>>
+  & PropsRenderSlots<ModelsChildSlots>
+  & SettingsSectionOwnerProps
 
 type ModelsSectionFace = InjectFace<ModelsSectionInjected>
 
@@ -86,7 +90,7 @@ interface EditorTarget extends ProviderIdentity {
 /** Values that vary around the shared provider-editor rendering. */
 interface ProviderEditorRenderProps extends Pick<
   ProviderEditorProps,
-  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose'
+  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose' | 'onSignedOut'
 > {
   target: EditorTarget
 }
@@ -207,11 +211,15 @@ export function ModelsSection(props: ModelsSectionProps): ReactNode {
     <Loaded
       injected={{ controller, useSnapshot, operations, schema, t, desktop: props.desktop === true }}
       renderSlot={renderSlot}
+      close={props.close}
     />
   )
 }
 
-function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderSlot: ModelsRenderSlot }): ReactNode {
+function Loaded(
+  { injected, renderSlot, close }:
+  { injected: ModelsSectionFace; renderSlot: ModelsRenderSlot; close: SettingsSectionOwnerProps['close'] },
+): ReactNode {
   const { controller, operations, schema, t } = injected
   const desktop = injected.desktop === true
   const state = injected.useSnapshot(snapshot => snapshot)
@@ -361,6 +369,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   t,
                   readOnly: !state.writable,
                   onClose: (changed) => { closeSetup(changed, target) },
+                  onSignedOut: close,
                 })}
                 {renderSlot(
                   'settings.models.provider-card',
@@ -457,6 +466,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   t,
                   readOnly: !state.writable,
                   onClose: (changed) => { closeEditor(changed, target) },
+                  onSignedOut: close,
                 })
                 : null}
             </li>

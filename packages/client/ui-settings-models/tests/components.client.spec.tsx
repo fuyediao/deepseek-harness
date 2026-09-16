@@ -294,6 +294,7 @@ async function mountFace(
   const controller = new ModelsSettingsStore(ctx, settingsSchema, mirror)
   await controller.load()
   const renderSlot = stubRenderSlot()
+  const close = vi.fn()
   const injected: ModelsSectionProps = {
     controller,
     useSnapshot: bindSnapshotSelector(controller.store),
@@ -302,9 +303,10 @@ async function mountFace(
     t,
     ...options.desktop === true ? { desktop: true } : {},
     renderSlot: renderSlot as unknown as ModelsSectionProps['renderSlot'],
+    close,
   }
   const view = render(<ModelsSection {...injected} />)
-  return { view, ctx, face, update, mutate, set, unset, controller, mirror, renderSlot }
+  return { view, ctx, face, update, mutate, set, unset, controller, mirror, renderSlot, close }
 }
 
 async function mountSection(overrides: Parameters<typeof scriptedFace>[0] = {}) {
@@ -426,6 +428,43 @@ describe('ModelsSection', () => {
     expect(screen.getByLabelText(en.models)).toBeTruthy()
     fireEvent.click(screen.getByText(en.cancel))
     expect(screen.queryByText(en.modelsSessionHint)).toBeNull()
+  })
+
+  it('leaves the settings panel when the desktop card signs the window out', async () => {
+    const GeoCrmConfig = Schema.object({
+      apiKeyEnv: Schema.string().role('credential-ref'),
+      baseURL: Schema.string(),
+    })
+    const scripted = scriptedFace()
+    scripted.face.llm.listProviders.mockImplementation(() => Promise.resolve(remoteOk([
+      { id: 'geocrm', name: 'GeoCRM' },
+    ])))
+    scripted.face.llm.listConfigurableProviders.mockImplementation(() => Promise.resolve(remoteOk([
+      { provider: 'geocrm', displayName: 'GeoCRM', settingsNs: 'llm-geocrm', settingsPath: [] },
+    ])))
+    scripted.face.settings.describe.mockImplementation(() => Promise.resolve(remoteOk({
+      writable: true,
+      hasDocument: false,
+      namespaces: [{
+        ns: 'llm-geocrm',
+        schema: JSON.parse(JSON.stringify(GeoCrmConfig.toJSON())) as JsonValue,
+        value: { apiKeyEnv: 'GEOCRM_HARNESS_TOKEN' },
+        applies: 'live' as const,
+        secrets: [],
+        revision: 0,
+      }],
+    })))
+    scripted.face.credentials.describe.mockImplementation((refs: string[]) =>
+      Promise.resolve(remoteOk(
+        Object.fromEntries(refs.map(ref => [ref, {
+          configured: ref === 'GEOCRM_HARNESS_TOKEN',
+          writable: true,
+        }])),
+      )))
+    const { close, unset } = await mountFace(scripted, { desktop: true })
+    fireEvent.click(await screen.findByText(en.signOut))
+    await waitFor(() => { expect(unset).toHaveBeenCalledWith('GEOCRM_HARNESS_TOKEN') })
+    await waitFor(() => { expect(close).toHaveBeenCalled() })
   })
 
   it('does not stack an auto-opened editor on a first-run GeoCRM setup card', async () => {
@@ -577,6 +616,7 @@ describe('ModelsSection', () => {
       schema={settingsSchema}
       t={t}
       renderSlot={() => null}
+      close={() => {}}
     />)
 
     const missing = screen.getByRole('img', { name: en.credentialMissing })
@@ -602,6 +642,7 @@ describe('ModelsSection', () => {
       schema={settingsSchema}
       t={t}
       renderSlot={() => null}
+      close={() => {}}
     />)
     // Now a row with an Edit button, not an open card.
     expect(screen.getAllByText(en.edit).length).toBeGreaterThan(1)
@@ -1757,6 +1798,7 @@ describe('ModelsSection', () => {
       schema={settingsSchema}
       t={t}
       renderSlot={() => null}
+      close={() => {}}
     />)
     const key = await screen.findByLabelText<HTMLInputElement>(en.keyInput)
     expect(key.placeholder).toBe(en.keyPlaceholder)
@@ -1891,6 +1933,7 @@ describe('ModelsSection', () => {
       schema={settingsSchema}
       t={t}
       renderSlot={() => null}
+      close={() => {}}
     />)
     expect(screen.getByText(/directory down/)).toBeTruthy()
     fireEvent.click(screen.getByText(en.retry))
@@ -1914,6 +1957,7 @@ describe('ModelsSection', () => {
       schema={settingsSchema}
       t={t}
       renderSlot={() => null}
+      close={() => {}}
     />)
     expect(screen.getByText(en.readOnly)).toBeTruthy()
     expect(screen.getAllByText<HTMLButtonElement>(en.remove).every(button => button.disabled)).toBe(true)
@@ -1976,6 +2020,7 @@ describe('ModelsSection', () => {
       schema={settingsSchema}
       t={t}
       renderSlot={() => null}
+      close={() => {}}
     />)
     await screen.findByText('DeepSeek')
   })

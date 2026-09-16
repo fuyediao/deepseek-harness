@@ -50,6 +50,13 @@ export interface GeoCrmSignInProps {
   /** Refresh the card's credential hint after a store or remove. */
   onCredentialChange: () => void
   /**
+   * Leave the surface that hosts this form once sign-out removed the session.
+   * The Models card passes the settings panel's `close`, so the window lands
+   * on the sign-in cover instead of keeping the panel above it; the cover itself
+   * passes nothing, having no panel to leave.
+   */
+  onSignedOut?: () => void
+  /**
    * After a stored sign-in, the last `list_my_access` probe (or `undefined`
    * when that probe failed). The desktop cover unlocks only on `desktopAgent`.
    */
@@ -179,6 +186,7 @@ export function GeoCrmSignIn(props: GeoCrmSignInProps): ReactNode {
       setAccess(undefined)
       setSessionEmail(undefined)
       props.onCredentialChange()
+      props.onSignedOut?.()
     } finally {
       setBusy(false)
     }

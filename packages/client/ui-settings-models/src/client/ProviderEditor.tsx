@@ -82,6 +82,11 @@ export interface ProviderEditorProps {
   submitBusyLabelKey?: keyof typeof en
   /** Close the editor; `changed` reports whether an Apply committed. */
   onClose: (changed: boolean) => void
+  /**
+   * Leave the settings panel once the GeoCRM session bar signed the window
+   * out. Other adapter families never call it.
+   */
+  onSignedOut?: () => void
 }
 
 /** A user-section subtree as a plain draft object (absent → empty). */
@@ -387,6 +392,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
               keyLocked={keyLocked}
               configured={keyState?.configured === true}
               onCredentialChange={refreshKeyState}
+              {...props.onSignedOut === undefined ? {} : { onSignedOut: props.onSignedOut }}
             />
           )
           : null}
